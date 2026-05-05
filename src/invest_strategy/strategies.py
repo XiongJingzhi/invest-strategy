@@ -19,7 +19,11 @@ def evaluate_strategy(
     peak_price = float(frame["close"].max())
     drawdown_pct = round((current_price / peak_price - 1) * 100, 2) if peak_price else 0.0
     ma_deviation_pct = _ma_deviation(frame, profile.trend_ma_days)
-    signal = StrategySignal(drawdown_pct=drawdown_pct, ma_deviation_pct=ma_deviation_pct)
+    signal = StrategySignal(
+        multiplier=profile.fixed_layer_weight,
+        drawdown_pct=drawdown_pct,
+        ma_deviation_pct=ma_deviation_pct,
+    )
 
     _apply_drawdown_rules(signal, profile)
     _apply_ma_rules(signal, profile)

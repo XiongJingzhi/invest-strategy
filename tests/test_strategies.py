@@ -45,3 +45,13 @@ def test_nasdaq_ma250_above_30_percent_suggests_partial_elastic_sell():
     assert signal.ma_deviation_pct >= 30
     assert signal.action == "减部分弹性仓"
     assert signal.allow_elastic_buy is False
+
+
+def test_nasdaq_normal_state_uses_smaller_fixed_layer_weight():
+    profile = get_default_profiles()["nasdaq100"]
+    prices = price_frame([100.0, 101.0, 102.0])
+
+    signal = evaluate_strategy(prices, profile, ValuationInput())
+
+    assert signal.action == "正常定投"
+    assert signal.multiplier == 0.6

@@ -24,6 +24,7 @@ class AssetProfile:
     display_name: str
     role: str
     base_description: str
+    strategy_notes: tuple[str, ...]
     fixed_layer_weight: float
     drawdown_rules: tuple[DrawdownRule, ...] = ()
     ma_rules: tuple[MaRule, ...] = ()
