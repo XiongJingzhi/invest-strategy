@@ -32,6 +32,9 @@ def test_presets_are_built_from_selectable_components():
         component.key for component in profiles["dividend_value_plus"].strategy_components
     }
     rebalance_components = {component.key for component in profiles["ma_rebalance"].strategy_components}
+    dividend_drawdown_ma_components = {
+        component.key for component in profiles["dividend_low_vol_drawdown_ma"].strategy_components
+    }
 
     assert sp500_components == {"fixed_contribution", "drawdown_add", "valuation_guard"}
     assert nasdaq_components == {"fixed_contribution", "drawdown_add", "ma_deviation"}
@@ -47,6 +50,45 @@ def test_presets_are_built_from_selectable_components():
         "ma_deviation",
     }
     assert rebalance_components == {"fixed_contribution", "ma_deviation"}
+    assert dividend_drawdown_ma_components == {
+        "fixed_contribution",
+        "drawdown_add",
+        "ma_deviation",
+    }
+
+
+def test_dividend_low_vol_drawdown_ma_preset_uses_requested_rules():
+    profile = get_default_profiles()["dividend_low_vol_drawdown_ma"]
+    drawdown = next(component for component in profile.strategy_components if component.key == "drawdown_add")
+    ma = next(component for component in profile.strategy_components if component.key == "ma_deviation")
+
+    assert drawdown.params["rules"] == [
+        {"threshold_pct": -20, "multiplier": 2.5, "action": "回撤 -20% 加仓"},
+        {"threshold_pct": -15, "multiplier": 2.0, "action": "回撤 -15% 加仓"},
+        {"threshold_pct": -10, "multiplier": 1.5, "action": "回撤 -10% 加仓"},
+        {"threshold_pct": -5, "multiplier": 1.2, "action": "回撤 -5% 加仓"},
+    ]
+    assert ma.params["ma_days"] == 250
+    assert ma.params["rules"] == [
+        {
+            "threshold_pct": 20,
+            "multiplier": 0.7,
+            "action": "高于 MA250 20% 降低定投",
+            "allow_elastic_buy": True,
+        },
+        {
+            "threshold_pct": 30,
+            "multiplier": 0.0,
+            "action": "停止弹性买入",
+            "allow_elastic_buy": False,
+        },
+        {
+            "threshold_pct": 35,
+            "multiplier": 0.0,
+            "action": "只考虑卖弹性仓",
+            "allow_elastic_buy": False,
+        },
+    ]
 
 
 def test_disabling_drawdown_component_removes_drawdown_add_on():

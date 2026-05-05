@@ -324,6 +324,49 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                 ),
             ),
         ),
+        "dividend_low_vol_drawdown_ma": AssetProfile(
+            key="dividend_low_vol_drawdown_ma",
+            display_name="红利低波回撤均线",
+            role="红利低波 + 回撤 + MA250",
+            base_description="适合红利低波类标的：平时正常定投，按标的回撤阶梯加仓，高于 MA250 后降低或停止弹性买入。",
+            strategy_notes=(
+                "正常状态保持 1.0 倍定投。",
+                "标的回撤 -5%、-10%、-15%、-20% 时逐级提高到 1.2、1.5、2.0、2.5 倍。",
+                "高于 MA250 20% 降到 0.7 倍，30% 停止弹性买入，35% 只考虑卖弹性仓。",
+            ),
+            fixed_layer_weight=1.0,
+            trend_ma_days=250,
+            drawdown_rules=(
+                DrawdownRule(-20, 2.5, "回撤 -20% 加仓"),
+                DrawdownRule(-15, 2.0, "回撤 -15% 加仓"),
+                DrawdownRule(-10, 1.5, "回撤 -10% 加仓"),
+                DrawdownRule(-5, 1.2, "回撤 -5% 加仓"),
+            ),
+            ma_rules=(
+                MaRule(20, 0.7, "高于 MA250 20% 降低定投"),
+                MaRule(30, 0.0, "停止弹性买入", allow_elastic_buy=False),
+                MaRule(35, 0.0, "只考虑卖弹性仓", allow_elastic_buy=False),
+            ),
+            strategy_components=(
+                fixed_contribution_component(1.0),
+                drawdown_component(
+                    (
+                        DrawdownRule(-20, 2.5, "回撤 -20% 加仓"),
+                        DrawdownRule(-15, 2.0, "回撤 -15% 加仓"),
+                        DrawdownRule(-10, 1.5, "回撤 -10% 加仓"),
+                        DrawdownRule(-5, 1.2, "回撤 -5% 加仓"),
+                    )
+                ),
+                ma_component(
+                    ma_days=250,
+                    rules=(
+                        MaRule(20, 0.7, "高于 MA250 20% 降低定投"),
+                        MaRule(30, 0.0, "停止弹性买入", allow_elastic_buy=False),
+                        MaRule(35, 0.0, "只考虑卖弹性仓", allow_elastic_buy=False),
+                    ),
+                ),
+            ),
+        ),
     }
 
 
