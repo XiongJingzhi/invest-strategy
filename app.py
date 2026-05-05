@@ -127,7 +127,15 @@ def main() -> None:
         file_name="strategy-comparison.csv",
         mime="text/csv",
     )
-    _render_comparison_summary(comparison.summary.drop(columns=["组合规则"], errors="ignore"))
+    with st.expander("复制策略组合对比数据"):
+        st.text_area(
+            "复制到表格",
+            value=comparison.summary.to_csv(index=False, sep="\t"),
+            height=180,
+        )
+    _render_comparison_summary(
+        comparison.summary.drop(columns=["组合规则", "策略参数"], errors="ignore")
+    )
     compare_chart = px.line(
         comparison.equity_curve,
         x="日期",

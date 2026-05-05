@@ -30,6 +30,7 @@ def compare_profiles(
             {
                 "策略组合": profile.display_name,
                 "组合规则": _profile_rules_text(profile),
+                "策略参数": _profile_params_text(profile),
                 "投入份额": round(float(result.monthly.iloc[-1]["shares"]), 4),
                 "累计投入": result.summary.total_invested,
                 "期末市值": result.summary.final_value,
@@ -64,3 +65,38 @@ def _profile_rules_text(profile: AssetProfile) -> str:
         multiplier = row.get("买入倍数", "")
         rules.append(f"{strategy}: {condition} -> {action} / {multiplier}")
     return "；".join(rules)
+
+
+def _profile_params_text(profile: AssetProfile) -> str:
+    parts = []
+    for component in sorted(profile.strategy_components, key=lambda item: item.priority):
+        if not component.enabled:
+            continue
+        params = component.params
+        if component.component_type == "fixed_contribution":
+            parts.append(f"{component.display_name}: 固定层权重={params.get('weight', 0)}")
+        elif component.component_type == "drawdown_add":
+            rules = [
+                f"{rule.get('threshold_pct')}%->{rule.get('multiplier')}x/{rule.get('action')}"
+                for rule in params.get("rules", [])
+            ]
+            parts.append(f"{component.display_name}: " + ", ".join(rules))
+        elif component.component_type == "ma_deviation":
+            rules = [
+                f"{rule.get('threshold_pct')}%->{rule.get('multiplier')}x/{rule.get('action')}"
+                for rule in params.get("rules", [])
+            ]
+            parts.append(
+                f"{component.display_name}: MA={params.get('ma_days', profile.trend_ma_days)}, "
+                + ", ".join(rules)
+            )
+        elif component.component_type == "dividend_yield":
+            parts.append(
+                f"{component.display_name}: 分位>={params.get('high_percentile', 70)}%, "
+                f"倍数={params.get('multiplier', 1.5)}"
+            )
+        elif component.component_type == "valuation_guard":
+            parts.append(
+                f"{component.display_name}: 高估分位>={params.get('high_percentile', 90)}%"
+            )
+    return "；".join(parts)
