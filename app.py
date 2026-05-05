@@ -17,6 +17,7 @@ from invest_strategy.profiles import (
     with_strategy_components,
 )
 from invest_strategy.strategies import evaluate_strategy
+from invest_strategy.tickers import CUSTOM_TICKER_LABEL, get_suggested_tickers, resolve_ticker_choice
 
 
 def main() -> None:
@@ -25,10 +26,16 @@ def main() -> None:
 
     profiles = get_default_profiles()
     profile_names = {profile.display_name: key for key, profile in profiles.items()}
+    ticker_suggestions = get_suggested_tickers()
 
     with st.sidebar:
         st.header("参数")
-        ticker = st.text_input("股票/ETF 代码", value="SPY")
+        ticker_options = [item.label for item in ticker_suggestions] + [CUSTOM_TICKER_LABEL]
+        selected_ticker = st.selectbox("股票/ETF 代码", ticker_options, index=0)
+        custom_ticker = ""
+        if selected_ticker == CUSTOM_TICKER_LABEL:
+            custom_ticker = st.text_input("自定义代码", value="SPY")
+        ticker = resolve_ticker_choice(selected_ticker, custom_ticker, ticker_suggestions)
         selected_name = st.selectbox("策略组合", list(profile_names), index=1)
         profile = profiles[profile_names[selected_name]]
         start = st.date_input("开始日期", value=date(2015, 1, 1))
