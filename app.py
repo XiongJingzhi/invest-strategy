@@ -121,7 +121,13 @@ def main() -> None:
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
 
     st.subheader("策略组合对比")
-    _render_comparison_summary(comparison.summary)
+    st.download_button(
+        "导出策略组合对比 CSV",
+        data=comparison.summary.to_csv(index=False).encode("utf-8-sig"),
+        file_name="strategy-comparison.csv",
+        mime="text/csv",
+    )
+    _render_comparison_summary(comparison.summary.drop(columns=["组合规则"], errors="ignore"))
     compare_chart = px.line(
         comparison.equity_curve,
         x="日期",
