@@ -1,0 +1,24 @@
+from __future__ import annotations
+
+import pandas as pd
+
+
+MONTHLY_COLUMN_NAMES = {
+    "date": "日期",
+    "close": "收盘价",
+    "multiplier": "买入倍数",
+    "contribution": "投入金额",
+    "bought_shares": "买入份额",
+    "shares": "累计份额",
+    "invested": "累计投入",
+    "value": "组合市值",
+    "drawdown_pct": "策略回撤",
+    "action": "操作",
+}
+
+
+def monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
+    display = monthly.copy()
+    display["date"] = pd.to_datetime(display["date"]).dt.strftime("%Y-%m")
+    display = display.rename(columns=MONTHLY_COLUMN_NAMES)
+    return display[list(MONTHLY_COLUMN_NAMES.values())]

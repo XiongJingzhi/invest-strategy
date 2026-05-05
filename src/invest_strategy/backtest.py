@@ -70,6 +70,4 @@ def run_backtest(
 
 def _monthly_prices(prices: pd.DataFrame) -> pd.DataFrame:
     frame = prices.set_index("date")
-    if len(frame) <= 36:
-        return frame.reset_index()
     return frame.resample("ME").last().dropna(subset=["close"]).reset_index()

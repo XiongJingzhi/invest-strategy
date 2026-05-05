@@ -9,6 +9,7 @@ import streamlit as st
 from invest_strategy.advice import build_advice
 from invest_strategy.backtest import run_backtest
 from invest_strategy.data import download_prices
+from invest_strategy.display import monthly_display_frame
 from invest_strategy.models import DrawdownRule, MaRule, ValuationInput
 from invest_strategy.profiles import (
     get_default_profiles,
@@ -83,10 +84,8 @@ def main() -> None:
     chart = px.line(result.monthly, x="date", y=["invested", "value"], title="投入本金 vs 组合市值")
     st.plotly_chart(chart, use_container_width=True)
 
-    display = result.monthly.copy()
-    display["date"] = display["date"].dt.strftime("%Y-%m-%d")
     st.subheader("月度操作")
-    st.dataframe(display.tail(36), use_container_width=True)
+    st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
 
 
 def _render_strategy_library(profiles: dict[str, object], selected_key: str) -> None:
@@ -112,7 +111,7 @@ def _profile_editor(profile):
     )
     fixed_layer_weight = st.slider(
         "固定层权重",
-        min_value=0.1,
+        min_value=0.0,
         max_value=2.0,
         value=float(profile.fixed_layer_weight),
         step=0.1,
