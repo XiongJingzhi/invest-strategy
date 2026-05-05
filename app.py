@@ -43,10 +43,9 @@ def main() -> None:
         pb_percentile = _optional_percent("PB 分位")
         pe_percentile = _optional_percent("PE 分位")
 
-    display_profiles = {**profiles, profile.key: profile}
-    _render_strategy_library(display_profiles, profile.key)
+    _render_current_strategy(profile)
     st.divider()
-    st.caption(f"当前执行模板：{profile.role} · {profile.base_description}")
+    st.caption(f"当前预设来源：{profile.display_name} · {profile.role}")
 
     if not ticker:
         st.info("请输入标的代码。")
@@ -89,17 +88,24 @@ def main() -> None:
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
 
 
-def _render_strategy_library(profiles: dict[str, object], selected_key: str) -> None:
-    st.subheader("资产策略库")
-    tabs = st.tabs([profile.display_name for profile in profiles.values()])
-    for tab, profile in zip(tabs, profiles.values(), strict=True):
-        with tab:
-            marker = "当前选择" if profile.key == selected_key else profile.role
-            st.markdown(f"**{marker}**")
-            st.write(profile.base_description)
-            for note in profile.strategy_notes:
-                st.markdown(f"- {note}")
-            st.dataframe(pd.DataFrame(get_profile_strategy_rows(profile)), use_container_width=True)
+def _render_current_strategy(profile) -> None:
+    st.subheader("当前组合策略")
+    st.write(profile.base_description)
+
+    enabled_components = [
+        component.display_name for component in profile.strategy_components if component.enabled
+    ]
+    disabled_components = [
+        component.display_name for component in profile.strategy_components if not component.enabled
+    ]
+
+    col1, col2 = st.columns(2)
+    col1.markdown("**启用组件**")
+    col1.write("、".join(enabled_components) if enabled_components else "无")
+    col2.markdown("**停用组件**")
+    col2.write("、".join(disabled_components) if disabled_components else "无")
+
+    st.dataframe(pd.DataFrame(get_profile_strategy_rows(profile)), use_container_width=True)
 
 
 def _profile_editor(profile):

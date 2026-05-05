@@ -1,7 +1,7 @@
 import pandas as pd
 
 from invest_strategy.models import StrategyComponent
-from invest_strategy.profiles import get_default_profiles, with_strategy_components
+from invest_strategy.profiles import get_default_profiles, get_profile_strategy_rows, with_strategy_components
 from invest_strategy.strategies import evaluate_strategy
 
 
@@ -37,6 +37,7 @@ def test_disabling_drawdown_component_removes_drawdown_add_on():
     assert signal.drawdown_pct == -25.0
     assert signal.multiplier == 1.0
     assert signal.action == "正常定投"
+    assert not any(row["策略"] == "回撤加仓" and row["状态"] == "启用" for row in get_profile_strategy_rows(profile))
 
 
 def test_component_parameters_can_be_edited():
