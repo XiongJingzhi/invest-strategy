@@ -10,11 +10,11 @@ from invest_strategy.advice import build_advice
 from invest_strategy.backtest import run_backtest
 from invest_strategy.data import download_prices
 from invest_strategy.display import monthly_display_frame
-from invest_strategy.models import DrawdownRule, MaRule, ValuationInput
+from invest_strategy.models import StrategyComponent, ValuationInput
 from invest_strategy.profiles import (
     get_default_profiles,
     get_profile_strategy_rows,
-    with_profile_settings,
+    with_strategy_components,
 )
 from invest_strategy.strategies import evaluate_strategy
 
@@ -103,98 +103,118 @@ def _render_strategy_library(profiles: dict[str, object], selected_key: str) -> 
 
 
 def _profile_editor(profile):
-    trend_ma_days = st.number_input(
-        "趋势均线天数",
-        min_value=20,
-        max_value=500,
-        value=int(profile.trend_ma_days),
-        step=10,
-    )
-    fixed_layer_weight = st.slider(
-        "固定层权重",
-        min_value=0.0,
-        max_value=2.0,
-        value=float(profile.fixed_layer_weight),
-        step=0.1,
-    )
-
-    drawdown_rules = profile.drawdown_rules
-    if profile.drawdown_rules:
-        st.markdown("回撤加仓规则")
-        drawdown_frame = pd.DataFrame(
-            [
-                {
-                    "回撤阈值%": rule.threshold_pct,
-                    "买入倍数": rule.multiplier,
-                    "动作": rule.action,
-                }
-                for rule in profile.drawdown_rules
-            ]
-        )
-        edited_drawdown = st.data_editor(
-            drawdown_frame,
-            hide_index=True,
-            num_rows="dynamic",
-            key=f"{profile.key}-drawdown-rules",
-        )
-        drawdown_rules = _drawdown_rules_from_frame(edited_drawdown)
-
-    ma_rules = profile.ma_rules
-    if profile.ma_rules:
-        st.markdown("均线偏离规则")
-        ma_frame = pd.DataFrame(
-            [
-                {
-                    "偏离阈值%": rule.threshold_pct,
-                    "买入倍数": rule.multiplier,
-                    "动作": rule.action,
-                    "允许弹性买入": rule.allow_elastic_buy,
-                }
-                for rule in profile.ma_rules
-            ]
-        )
-        edited_ma = st.data_editor(
-            ma_frame,
-            hide_index=True,
-            num_rows="dynamic",
-            key=f"{profile.key}-ma-rules",
-        )
-        ma_rules = _ma_rules_from_frame(edited_ma)
-
-    return with_profile_settings(
-        profile,
-        trend_ma_days=int(trend_ma_days),
-        fixed_layer_weight=float(fixed_layer_weight),
-        drawdown_rules=drawdown_rules,
-        ma_rules=ma_rules,
-    )
-
-
-def _drawdown_rules_from_frame(frame: pd.DataFrame) -> tuple[DrawdownRule, ...]:
-    rules: list[DrawdownRule] = []
-    for _, row in frame.dropna(subset=["回撤阈值%", "买入倍数", "动作"]).iterrows():
-        rules.append(
-            DrawdownRule(
-                threshold_pct=float(row["回撤阈值%"]),
-                multiplier=float(row["买入倍数"]),
-                action=str(row["动作"]),
+    components = []
+    for component in sorted(profile.strategy_components, key=lambda item: item.priority):
+        with st.expander(component.display_name, expanded=component.enabled):
+            enabled = st.checkbox(
+                "启用",
+                value=component.enabled,
+                key=f"{profile.key}-{component.key}-enabled",
             )
-        )
-    return tuple(rules)
+            params = dict(component.params)
 
+            if component.component_type == "fixed_contribution":
+                params["weight"] = st.slider(
+                    "固定层权重",
+                    min_value=0.0,
+                    max_value=2.0,
+                    value=float(params.get("weight", 1.0)),
+                    step=0.1,
+                    key=f"{profile.key}-{component.key}-weight",
+                )
+            elif component.component_type == "drawdown_add":
+                st.markdown("回撤加仓规则")
+                params["rules"] = _rules_from_editor(
+                    params.get("rules", []),
+                    key=f"{profile.key}-{component.key}-rules",
+                    include_elastic=False,
+                )
+            elif component.component_type == "ma_deviation":
+                params["ma_days"] = st.number_input(
+                    "趋势均线天数",
+                    min_value=20,
+                    max_value=500,
+                    value=int(params.get("ma_days", profile.trend_ma_days)),
+                    step=10,
+                    key=f"{profile.key}-{component.key}-ma-days",
+                )
+                st.markdown("均线偏离规则")
+                params["rules"] = _rules_from_editor(
+                    params.get("rules", []),
+                    key=f"{profile.key}-{component.key}-rules",
+                    include_elastic=True,
+                )
+            elif component.component_type == "dividend_yield":
+                params["high_percentile"] = st.slider(
+                    "加仓股息率分位",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=float(params.get("high_percentile", 70)),
+                    step=1.0,
+                    key=f"{profile.key}-{component.key}-high",
+                )
+                params["multiplier"] = st.slider(
+                    "加仓买入倍数",
+                    min_value=0.0,
+                    max_value=5.0,
+                    value=float(params.get("multiplier", 1.5)),
+                    step=0.1,
+                    key=f"{profile.key}-{component.key}-multiplier",
+                )
+            elif component.component_type == "valuation_guard":
+                params["high_percentile"] = st.slider(
+                    "高估停止弹性买入分位",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=float(params.get("high_percentile", 90)),
+                    step=1.0,
+                    key=f"{profile.key}-{component.key}-high",
+                )
 
-def _ma_rules_from_frame(frame: pd.DataFrame) -> tuple[MaRule, ...]:
-    rules: list[MaRule] = []
-    for _, row in frame.dropna(subset=["偏离阈值%", "买入倍数", "动作"]).iterrows():
-        rules.append(
-            MaRule(
-                threshold_pct=float(row["偏离阈值%"]),
-                multiplier=float(row["买入倍数"]),
-                action=str(row["动作"]),
-                allow_elastic_buy=bool(row.get("允许弹性买入", True)),
+            components.append(
+                StrategyComponent(
+                    key=component.key,
+                    display_name=component.display_name,
+                    component_type=component.component_type,
+                    enabled=enabled,
+                    priority=component.priority,
+                    params=params,
+                )
             )
-        )
-    return tuple(rules)
+
+    return with_strategy_components(profile, tuple(components))
+
+
+def _rules_from_editor(
+    rules: object,
+    *,
+    key: str,
+    include_elastic: bool,
+) -> list[dict[str, object]]:
+    rows = []
+    for rule in rules if isinstance(rules, list) else []:
+        row = {
+            "阈值%": rule.get("threshold_pct", 0),
+            "买入倍数": rule.get("multiplier", 1),
+            "动作": rule.get("action", "正常定投"),
+        }
+        if include_elastic:
+            row["允许弹性买入"] = rule.get("allow_elastic_buy", True)
+        rows.append(row)
+
+    edited = st.data_editor(pd.DataFrame(rows), hide_index=True, num_rows="dynamic", key=key)
+    normalized = []
+    required = ["阈值%", "买入倍数", "动作"]
+    for _, row in edited.dropna(subset=required).iterrows():
+        item = {
+            "threshold_pct": float(row["阈值%"]),
+            "multiplier": float(row["买入倍数"]),
+            "action": str(row["动作"]),
+        }
+        if include_elastic:
+            item["allow_elastic_buy"] = bool(row.get("允许弹性买入", True))
+        normalized.append(item)
+    return normalized
 
 
 def _optional_percent(label: str) -> float | None:

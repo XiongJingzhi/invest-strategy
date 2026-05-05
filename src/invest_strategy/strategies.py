@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .models import AssetProfile, StrategySignal, ValuationInput
+from .models import AssetProfile, DrawdownRule, MaRule, StrategyComponent, StrategySignal, ValuationInput
 
 
 def evaluate_strategy(
@@ -18,16 +18,20 @@ def evaluate_strategy(
     current_price = float(frame["close"].iloc[-1])
     peak_price = float(frame["close"].max())
     drawdown_pct = round((current_price / peak_price - 1) * 100, 2) if peak_price else 0.0
-    ma_deviation_pct = _ma_deviation(frame, profile.trend_ma_days)
+    ma_days = _ma_days(profile)
+    ma_deviation_pct = _ma_deviation(frame, ma_days)
     signal = StrategySignal(
-        multiplier=profile.fixed_layer_weight,
+        multiplier=_fixed_layer_weight(profile),
         drawdown_pct=drawdown_pct,
         ma_deviation_pct=ma_deviation_pct,
     )
 
-    _apply_drawdown_rules(signal, profile)
-    _apply_ma_rules(signal, profile)
-    _apply_valuation_hint(signal, profile, valuation)
+    if profile.strategy_components:
+        _apply_components(signal, profile, valuation, ma_days)
+    else:
+        _apply_drawdown_rules(signal, profile.drawdown_rules)
+        _apply_ma_rules(signal, profile.ma_rules, ma_days)
+        _apply_valuation_hint(signal, profile, valuation)
 
     if not signal.reasons:
         signal.reasons.append("价格处于常规区间")
@@ -58,10 +62,72 @@ def _ma_deviation(frame: pd.DataFrame, days: int) -> float | None:
     return round((current_price / moving_average - 1) * 100, 2)
 
 
-def _apply_drawdown_rules(signal: StrategySignal, profile: AssetProfile) -> None:
+def _fixed_layer_weight(profile: AssetProfile) -> float:
+    component = _component(profile, "fixed_contribution")
+    if component is None:
+        return profile.fixed_layer_weight
+    if not component.enabled:
+        return 0.0
+    return float(component.params.get("weight", profile.fixed_layer_weight))
+
+
+def _ma_days(profile: AssetProfile) -> int:
+    component = _component(profile, "ma_deviation")
+    if component is None:
+        return profile.trend_ma_days
+    return int(component.params.get("ma_days", profile.trend_ma_days))
+
+
+def _component(profile: AssetProfile, key: str) -> StrategyComponent | None:
+    return next((item for item in profile.strategy_components if item.key == key), None)
+
+
+def _apply_components(
+    signal: StrategySignal,
+    profile: AssetProfile,
+    valuation: ValuationInput,
+    ma_days: int,
+) -> None:
+    for component in sorted(profile.strategy_components, key=lambda item: item.priority):
+        if not component.enabled:
+            continue
+        if component.component_type == "drawdown_add":
+            _apply_drawdown_rules(signal, _drawdown_rules(component))
+        elif component.component_type == "ma_deviation":
+            _apply_ma_rules(signal, _ma_rules(component), ma_days)
+        elif component.component_type == "dividend_yield":
+            _apply_dividend_component(signal, component, valuation)
+        elif component.component_type == "valuation_guard":
+            _apply_valuation_component(signal, component, valuation)
+
+
+def _drawdown_rules(component: StrategyComponent) -> tuple[DrawdownRule, ...]:
+    return tuple(
+        DrawdownRule(
+            threshold_pct=float(rule["threshold_pct"]),
+            multiplier=float(rule["multiplier"]),
+            action=str(rule["action"]),
+        )
+        for rule in component.params.get("rules", [])
+    )
+
+
+def _ma_rules(component: StrategyComponent) -> tuple[MaRule, ...]:
+    return tuple(
+        MaRule(
+            threshold_pct=float(rule["threshold_pct"]),
+            multiplier=float(rule["multiplier"]),
+            action=str(rule["action"]),
+            allow_elastic_buy=bool(rule.get("allow_elastic_buy", True)),
+        )
+        for rule in component.params.get("rules", [])
+    )
+
+
+def _apply_drawdown_rules(signal: StrategySignal, rules: tuple[DrawdownRule, ...]) -> None:
     if signal.drawdown_pct is None:
         return
-    for rule in sorted(profile.drawdown_rules, key=lambda item: item.threshold_pct):
+    for rule in sorted(rules, key=lambda item: item.threshold_pct):
         if signal.drawdown_pct <= rule.threshold_pct:
             signal.multiplier = max(signal.multiplier, rule.multiplier)
             signal.action = rule.action
@@ -69,12 +135,12 @@ def _apply_drawdown_rules(signal: StrategySignal, profile: AssetProfile) -> None
             return
 
 
-def _apply_ma_rules(signal: StrategySignal, profile: AssetProfile) -> None:
+def _apply_ma_rules(signal: StrategySignal, rules: tuple[MaRule, ...], ma_days: int) -> None:
     if signal.ma_deviation_pct is None:
         return
 
     lower_rules = sorted(
-        [rule for rule in profile.ma_rules if rule.threshold_pct < 0],
+        [rule for rule in rules if rule.threshold_pct < 0],
         key=lambda item: item.threshold_pct,
     )
     for rule in lower_rules:
@@ -83,12 +149,12 @@ def _apply_ma_rules(signal: StrategySignal, profile: AssetProfile) -> None:
             signal.action = rule.action
             signal.allow_elastic_buy = rule.allow_elastic_buy
             signal.reasons.append(
-                f"低于 MA{profile.trend_ma_days} {abs(signal.ma_deviation_pct):.1f}%"
+                f"低于 MA{ma_days} {abs(signal.ma_deviation_pct):.1f}%"
             )
             return
 
     upper_rules = sorted(
-        [rule for rule in profile.ma_rules if rule.threshold_pct > 0],
+        [rule for rule in rules if rule.threshold_pct > 0],
         key=lambda item: item.threshold_pct,
         reverse=True,
     )
@@ -98,7 +164,7 @@ def _apply_ma_rules(signal: StrategySignal, profile: AssetProfile) -> None:
             signal.action = rule.action
             signal.allow_elastic_buy = rule.allow_elastic_buy
             signal.reasons.append(
-                f"高于 MA{profile.trend_ma_days} {signal.ma_deviation_pct:.1f}%"
+                f"高于 MA{ma_days} {signal.ma_deviation_pct:.1f}%"
             )
             return
 
@@ -131,5 +197,44 @@ def _apply_valuation_hint(
             signal.allow_elastic_buy = False
             signal.reasons.append(f"估值分位偏低吸引力不足 {score:.0f}%")
     elif score >= 90:
+        signal.allow_elastic_buy = False
+        signal.reasons.append(f"估值分位偏高 {score:.0f}%，只控制弹性层")
+
+
+def _apply_dividend_component(
+    signal: StrategySignal,
+    component: StrategyComponent,
+    valuation: ValuationInput,
+) -> None:
+    if valuation.dividend_percentile is None:
+        return
+    high_percentile = float(component.params.get("high_percentile", 70))
+    if valuation.dividend_percentile >= high_percentile:
+        multiplier = float(component.params.get("multiplier", 1.5))
+        signal.multiplier = max(signal.multiplier, multiplier)
+        signal.action = "股息率高位加仓"
+        signal.reasons.append(f"股息率分位 {valuation.dividend_percentile:.0f}%")
+
+
+def _apply_valuation_component(
+    signal: StrategySignal,
+    component: StrategyComponent,
+    valuation: ValuationInput,
+) -> None:
+    values = [
+        value
+        for value in (
+            valuation.dividend_percentile,
+            valuation.pb_percentile,
+            valuation.pe_percentile,
+        )
+        if value is not None
+    ]
+    if not values:
+        return
+    score = round(sum(values) / len(values), 2)
+    signal.valuation_score = score
+    high_percentile = float(component.params.get("high_percentile", 90))
+    if score >= high_percentile:
         signal.allow_elastic_buy = False
         signal.reasons.append(f"估值分位偏高 {score:.0f}%，只控制弹性层")

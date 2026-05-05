@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,19 @@ class MaRule:
 
 
 @dataclass(frozen=True)
+class StrategyComponent:
+    key: str
+    display_name: str
+    component_type: str
+    enabled: bool = True
+    priority: int = 100
+    params: dict[str, object] = field(default_factory=dict)
+
+    def disabled(self) -> "StrategyComponent":
+        return replace(self, enabled=False)
+
+
+@dataclass(frozen=True)
 class AssetProfile:
     key: str
     display_name: str
@@ -32,6 +45,7 @@ class AssetProfile:
     valuation_weight: float = 0.0
     dividend_weight: float = 0.0
     partial_sell_above_ma_pct: float | None = None
+    strategy_components: tuple[StrategyComponent, ...] = ()
 
 
 @dataclass(frozen=True)
