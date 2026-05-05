@@ -20,5 +20,9 @@ def test_compare_profiles_returns_summary_and_equity_curve():
     )
 
     assert comparison.summary["策略组合"].tolist() == ["全球核心定投", "稳健定投"]
+    assert "组合说明" in comparison.summary.columns
+    assert "投入份额" in comparison.summary.columns
+    assert comparison.summary.loc[0, "组合说明"] == profiles["sp500"].base_description
+    assert comparison.summary.loc[0, "投入份额"] > 0
     assert {"日期", "策略组合", "组合市值"}.issubset(comparison.equity_curve.columns)
     assert len(comparison.equity_curve["策略组合"].unique()) == 2

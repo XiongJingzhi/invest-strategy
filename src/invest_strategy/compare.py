@@ -28,6 +28,8 @@ def compare_profiles(
         summary_rows.append(
             {
                 "策略组合": profile.display_name,
+                "组合说明": profile.base_description,
+                "投入份额": round(float(result.monthly.iloc[-1]["shares"]), 4),
                 "累计投入": result.summary.total_invested,
                 "期末市值": result.summary.final_value,
                 "总收益率": result.summary.total_return_pct,
