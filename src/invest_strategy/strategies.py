@@ -131,7 +131,7 @@ def _apply_drawdown_rules(signal: StrategySignal, rules: tuple[DrawdownRule, ...
         if signal.drawdown_pct <= rule.threshold_pct:
             signal.multiplier = max(signal.multiplier, rule.multiplier)
             signal.action = rule.action
-            signal.reasons.append(f"从高点回撤 {abs(signal.drawdown_pct):.1f}%")
+            signal.reasons.append(f"标的从高点回撤 {abs(signal.drawdown_pct):.1f}%")
             return
 
 

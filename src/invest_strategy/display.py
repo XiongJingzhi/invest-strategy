@@ -12,7 +12,7 @@ MONTHLY_COLUMN_NAMES = {
     "shares": "累计份额",
     "invested": "累计投入",
     "value": "组合市值",
-    "drawdown_pct": "策略回撤",
+    "drawdown_pct": "标的回撤",
     "action": "操作",
 }
 

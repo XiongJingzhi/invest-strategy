@@ -75,7 +75,7 @@ def main() -> None:
     signal_rows = {
         "操作": signal.action,
         "买入倍数": signal.multiplier,
-        "从高点回撤": _fmt_pct(signal.drawdown_pct),
+        "标的从高点回撤": _fmt_pct(signal.drawdown_pct),
         f"MA{profile.trend_ma_days} 偏离": _fmt_pct(signal.ma_deviation_pct),
         "允许弹性买入": "是" if signal.allow_elastic_buy else "否",
     }
@@ -129,7 +129,7 @@ def _profile_editor(profile):
                     key=f"{profile.key}-{component.key}-weight",
                 )
             elif component.component_type == "drawdown_add":
-                st.markdown("回撤加仓规则")
+                st.markdown("标的回撤加仓规则")
                 params["rules"] = _rules_from_editor(
                     params.get("rules", []),
                     key=f"{profile.key}-{component.key}-rules",

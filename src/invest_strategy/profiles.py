@@ -52,7 +52,7 @@ def get_default_profiles() -> dict[str, AssetProfile]:
             base_description="固定层持续定投，回撤加仓，估值只控制弹性层。",
             strategy_notes=(
                 "固定层长期不断投，不因短期估值或均线信号轻易中断。",
-                "从历史高点回撤 10% 后逐级提高投入，30% 后动用现金桶。",
+                "标的价格从历史高点回撤 10% 后逐级提高投入，30% 后动用现金桶。",
                 "估值极高时停止弹性买入，但不轻易卖出固定仓。",
             ),
             fixed_layer_weight=1.0,
@@ -85,7 +85,7 @@ def get_default_profiles() -> dict[str, AssetProfile]:
             base_description="小额定投，深度回撤加仓，MA250 控制弹性仓。",
             strategy_notes=(
                 "固定层小额持续，仓位不应超过标普500核心仓。",
-                "回撤 20% 后开始加大买入，30%-40% 是重点加仓区。",
+                "标的价格回撤 20% 后开始加大买入，30%-40% 是重点加仓区。",
                 "高于 MA250 20% 停止弹性买入，30% 以上可减部分弹性仓。",
             ),
             fixed_layer_weight=0.6,
@@ -215,7 +215,7 @@ def get_profile_strategy_rows(profile: AssetProfile) -> list[dict[str, object]]:
         rows.append(
             {
                 "策略": "回撤加仓",
-                "触发条件": f"从历史高点回撤 <= {rule.threshold_pct:g}%",
+                "触发条件": f"标的从历史高点回撤 <= {rule.threshold_pct:g}%",
                 "动作": rule.action,
                 "买入倍数": rule.multiplier,
                 "是否允许弹性买入": "是",
@@ -280,7 +280,7 @@ def get_component_strategy_rows(profile: AssetProfile) -> list[dict[str, object]
                     {
                         "策略": component.display_name,
                         "状态": status,
-                        "触发条件": f"从历史高点回撤 <= {rule['threshold_pct']:g}%",
+                        "触发条件": f"标的从历史高点回撤 <= {rule['threshold_pct']:g}%",
                         "动作": rule["action"],
                         "买入倍数": rule["multiplier"],
                         "是否允许弹性买入": "是",

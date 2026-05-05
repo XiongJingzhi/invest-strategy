@@ -30,7 +30,7 @@ def test_monthly_display_frame_uses_chinese_columns():
         "累计份额",
         "累计投入",
         "组合市值",
-        "策略回撤",
+        "标的回撤",
         "操作",
     ]
     assert display.iloc[0]["日期"] == "2024-01"
