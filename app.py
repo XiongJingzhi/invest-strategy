@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
-from html import escape
+import json
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
 from invest_strategy.advice import build_advice
 from invest_strategy.backtest import run_backtest
@@ -121,20 +122,18 @@ def main() -> None:
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
 
     st.subheader("策略组合对比")
+    comparison_tsv = comparison.summary.to_csv(index=False, sep="\t")
     st.download_button(
         "导出策略组合对比 CSV",
         data=comparison.summary.to_csv(index=False).encode("utf-8-sig"),
         file_name="strategy-comparison.csv",
         mime="text/csv",
     )
-    with st.expander("复制策略组合对比数据"):
-        st.text_area(
-            "复制到表格",
-            value=comparison.summary.to_csv(index=False, sep="\t"),
-            height=180,
-        )
-    _render_comparison_summary(
-        comparison.summary.drop(columns=["组合规则", "策略参数"], errors="ignore")
+    _render_copy_button(comparison_tsv)
+    st.dataframe(
+        _comparison_display_frame(comparison.summary),
+        use_container_width=True,
+        hide_index=True,
     )
     compare_chart = px.line(
         comparison.equity_curve,
@@ -166,42 +165,43 @@ def _render_current_strategy(profile) -> None:
     st.dataframe(pd.DataFrame(get_profile_strategy_rows(profile)), use_container_width=True)
 
 
-def _render_comparison_summary(summary: pd.DataFrame) -> None:
-    st.markdown(_comparison_table_html(summary), unsafe_allow_html=True)
+def _comparison_display_frame(summary: pd.DataFrame) -> pd.DataFrame:
+    return summary.drop(columns=["组合规则", "策略参数"], errors="ignore")
 
 
-def _comparison_table_html(summary: pd.DataFrame) -> str:
-    headers = "".join(f"<th>{escape(str(column))}</th>" for column in summary.columns)
-    rows = []
-    for _, row in summary.iterrows():
-        cells = []
-        for column in summary.columns:
-            value = row[column]
-            text = "" if pd.isna(value) else str(value)
-            if column == "组合规则":
-                cells.append(
-                    '<td class="rules-cell" title="'
-                    + escape(text, quote=True)
-                    + '">'
-                    + escape(text)
-                    + "</td>"
-                )
-            else:
-                cells.append("<td>" + escape(text) + "</td>")
-        rows.append("<tr>" + "".join(cells) + "</tr>")
-
-    return (
-        "<style>"
-        ".compare-table{width:100%;border-collapse:collapse;font-size:14px;}"
-        ".compare-table th,.compare-table td{border:1px solid #e5e7eb;padding:8px;text-align:left;vertical-align:top;}"
-        ".compare-table th{background:#f8fafc;font-weight:600;}"
-        ".compare-table .rules-cell{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}"
-        "</style>"
-        '<table class="compare-table"><thead><tr>'
-        + headers
-        + "</tr></thead><tbody>"
-        + "".join(rows)
-        + "</tbody></table>"
+def _render_copy_button(tsv_text: str) -> None:
+    payload = json.dumps(tsv_text, ensure_ascii=False)
+    components.html(
+        f"""
+        <button id="copy-comparison" style="
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #111827;
+            cursor: pointer;
+            font: 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 8px 12px;
+        ">复制策略组合对比数据</button>
+        <span id="copy-status" style="
+            color: #64748b;
+            font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin-left: 8px;
+        "></span>
+        <script>
+        const button = document.getElementById("copy-comparison");
+        const status = document.getElementById("copy-status");
+        button.addEventListener("click", async () => {{
+            try {{
+                await navigator.clipboard.writeText({payload});
+                status.textContent = "已复制";
+                setTimeout(() => status.textContent = "", 1800);
+            }} catch (error) {{
+                status.textContent = "复制失败，请使用 CSV 导出";
+            }}
+        }});
+        </script>
+        """,
+        height=44,
     )
 
 
