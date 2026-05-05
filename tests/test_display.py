@@ -1,6 +1,10 @@
 import pandas as pd
 
-from invest_strategy.display import monthly_display_frame, target_monthly_display_frame
+from invest_strategy.display import (
+    comparison_display_frame,
+    monthly_display_frame,
+    target_monthly_display_frame,
+)
 
 
 def test_monthly_display_frame_uses_chinese_columns():
@@ -66,3 +70,33 @@ def test_target_monthly_display_frame_contains_target_and_investment_data():
         "累计投入",
         "组合市值",
     ]
+
+
+def test_comparison_display_frame_hides_export_only_columns_and_orders_metrics():
+    summary = pd.DataFrame(
+        {
+            "策略组合": ["纯固定定投"],
+            "组合规则": ["full rule text"],
+            "策略参数": ["full params"],
+            "投入份额": [333601.8323],
+            "累计投入": [267000.0],
+            "期末市值": [396318.96],
+            "总收益率": [48.43],
+            "年化回报率": [5.53],
+            "组合最大回撤": [-6.71],
+        }
+    )
+
+    display = comparison_display_frame(summary)
+
+    assert list(display.columns) == [
+        "策略组合",
+        "投入份额",
+        "累计投入",
+        "期末市值",
+        "总收益率",
+        "年化回报率",
+        "组合最大回撤",
+    ]
+    assert "组合规则" not in display.columns
+    assert "策略参数" not in display.columns

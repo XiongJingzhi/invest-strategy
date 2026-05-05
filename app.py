@@ -12,7 +12,11 @@ from invest_strategy.advice import build_advice
 from invest_strategy.backtest import run_backtest
 from invest_strategy.compare import compare_profiles
 from invest_strategy.data import download_prices
-from invest_strategy.display import monthly_display_frame, target_monthly_display_frame
+from invest_strategy.display import (
+    comparison_display_frame,
+    monthly_display_frame,
+    target_monthly_display_frame,
+)
 from invest_strategy.models import StrategyComponent, ValuationInput
 from invest_strategy.profiles import (
     get_default_profiles,
@@ -136,17 +140,31 @@ def main() -> None:
 
     st.subheader("策略组合对比")
     comparison_tsv = comparison.summary.to_csv(index=False, sep="\t")
-    st.download_button(
-        "导出策略组合对比 CSV",
-        data=comparison.summary.to_csv(index=False).encode("utf-8-sig"),
-        file_name="strategy-comparison.csv",
-        mime="text/csv",
-    )
-    _render_copy_button(comparison_tsv)
+    tool_col1, tool_col2, tool_col3 = st.columns([1.05, 1.05, 4])
+    with tool_col1:
+        st.download_button(
+            "导出 CSV",
+            data=comparison.summary.to_csv(index=False).encode("utf-8-sig"),
+            file_name="strategy-comparison.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with tool_col2:
+        _render_copy_button(comparison_tsv)
     st.dataframe(
-        _comparison_display_frame(comparison.summary),
+        comparison_display_frame(comparison.summary),
         use_container_width=True,
         hide_index=True,
+        height=360,
+        column_config={
+            "策略组合": st.column_config.TextColumn("策略组合", width="medium"),
+            "投入份额": st.column_config.NumberColumn("投入份额", format="%.2f", width="small"),
+            "累计投入": st.column_config.NumberColumn("累计投入", format="%.0f", width="small"),
+            "期末市值": st.column_config.NumberColumn("期末市值", format="%.0f", width="small"),
+            "总收益率": st.column_config.NumberColumn("总收益率", format="%.2f%%", width="small"),
+            "年化回报率": st.column_config.NumberColumn("年化回报率", format="%.2f%%", width="small"),
+            "组合最大回撤": st.column_config.NumberColumn("组合最大回撤", format="%.2f%%", width="small"),
+        },
     )
     compare_chart = px.line(
         comparison.equity_curve,
@@ -178,10 +196,6 @@ def _render_current_strategy(profile) -> None:
     st.dataframe(pd.DataFrame(get_profile_strategy_rows(profile)), use_container_width=True)
 
 
-def _comparison_display_frame(summary: pd.DataFrame) -> pd.DataFrame:
-    return summary.drop(columns=["组合规则", "策略参数"], errors="ignore")
-
-
 def _render_copy_button(tsv_text: str) -> None:
     payload = json.dumps(tsv_text, ensure_ascii=False)
     components.html(
@@ -193,12 +207,15 @@ def _render_copy_button(tsv_text: str) -> None:
             color: #111827;
             cursor: pointer;
             font: 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 38px;
             padding: 8px 12px;
-        ">复制策略组合对比数据</button>
+            width: 100%;
+        ">复制数据</button>
         <span id="copy-status" style="
             color: #64748b;
             font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            margin-left: 8px;
+            display: inline-block;
+            margin-top: 4px;
         "></span>
         <script>
         const button = document.getElementById("copy-comparison");
@@ -214,7 +231,7 @@ def _render_copy_button(tsv_text: str) -> None:
         }});
         </script>
         """,
-        height=44,
+        height=50,
     )
 
 

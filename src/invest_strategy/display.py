@@ -55,3 +55,16 @@ def target_monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
             "组合市值",
         ]
     ]
+
+
+def comparison_display_frame(summary: pd.DataFrame) -> pd.DataFrame:
+    columns = [
+        "策略组合",
+        "投入份额",
+        "累计投入",
+        "期末市值",
+        "总收益率",
+        "年化回报率",
+        "组合最大回撤",
+    ]
+    return summary[[column for column in columns if column in summary.columns]].copy()
