@@ -126,6 +126,98 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                 ),
             ),
         ),
+        "steady_dca": AssetProfile(
+            key="steady_dca",
+            display_name="稳健定投",
+            role="稳健 + 低干预",
+            base_description="固定层为主，轻度标的回撤加仓，适合不想频繁调仓的长期定投。",
+            strategy_notes=(
+                "固定层保持 1 倍定投，不轻易中断。",
+                "标的回撤 10% 后小幅提高投入，20% 后再提高一档。",
+                "不设置卖出规则，避免过度择时。",
+            ),
+            fixed_layer_weight=1.0,
+            trend_ma_days=250,
+            drawdown_rules=(
+                DrawdownRule(-20, 1.8, "稳健加仓"),
+                DrawdownRule(-10, 1.3, "小幅加仓"),
+            ),
+            strategy_components=(
+                fixed_contribution_component(1.0),
+                drawdown_component(
+                    (
+                        DrawdownRule(-20, 1.8, "稳健加仓"),
+                        DrawdownRule(-10, 1.3, "小幅加仓"),
+                    )
+                ),
+            ),
+        ),
+        "aggressive_drawdown": AssetProfile(
+            key="aggressive_drawdown",
+            display_name="进攻回撤",
+            role="进攻 + 深跌加仓",
+            base_description="固定层较低，主要等待标的深度回撤时提高买入倍数，并用长期均线禁止高位追涨。",
+            strategy_notes=(
+                "平时低速定投，保留现金弹性。",
+                "标的回撤 20% 后开始明显加仓，40% 后大额分批。",
+                "高于长期均线 25% 后停止弹性买入。",
+            ),
+            fixed_layer_weight=0.5,
+            trend_ma_days=250,
+            drawdown_rules=(
+                DrawdownRule(-40, 4.0, "大额分批加仓"),
+                DrawdownRule(-30, 3.0, "重点加仓"),
+                DrawdownRule(-20, 2.0, "明显加仓"),
+            ),
+            ma_rules=(
+                MaRule(25, 0.5, "停止弹性买入", allow_elastic_buy=False),
+            ),
+            strategy_components=(
+                fixed_contribution_component(0.5),
+                drawdown_component(
+                    (
+                        DrawdownRule(-40, 4.0, "大额分批加仓"),
+                        DrawdownRule(-30, 3.0, "重点加仓"),
+                        DrawdownRule(-20, 2.0, "明显加仓"),
+                    )
+                ),
+                ma_component(
+                    ma_days=250,
+                    rules=(MaRule(25, 0.5, "停止弹性买入", allow_elastic_buy=False),),
+                ),
+            ),
+        ),
+        "trend_guard": AssetProfile(
+            key="trend_guard",
+            display_name="趋势风控",
+            role="趋势 + 风控",
+            base_description="固定定投叠加长期均线风控，适合高波动资产或用户想控制高位弹性买入的场景。",
+            strategy_notes=(
+                "固定层保持在场。",
+                "低于长期均线 15% 时提高买入。",
+                "高于长期均线 20% 后停止弹性买入，30% 后可减部分弹性仓。",
+            ),
+            fixed_layer_weight=0.8,
+            trend_ma_days=250,
+            valuation_weight=0.1,
+            ma_rules=(
+                MaRule(-15, 1.5, "趋势低位加仓"),
+                MaRule(20, 0.8, "停止弹性买入", allow_elastic_buy=False),
+                MaRule(30, 0.0, "减部分弹性仓", allow_elastic_buy=False),
+            ),
+            strategy_components=(
+                fixed_contribution_component(0.8),
+                ma_component(
+                    ma_days=250,
+                    rules=(
+                        MaRule(-15, 1.5, "趋势低位加仓"),
+                        MaRule(20, 0.8, "停止弹性买入", allow_elastic_buy=False),
+                        MaRule(30, 0.0, "减部分弹性仓", allow_elastic_buy=False),
+                    ),
+                ),
+                valuation_component(weight=0.1),
+            ),
+        ),
     }
 
 

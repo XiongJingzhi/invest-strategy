@@ -19,9 +19,17 @@ def test_presets_are_built_from_selectable_components():
 
     sp500_components = {component.key for component in profiles["sp500"].strategy_components}
     nasdaq_components = {component.key for component in profiles["nasdaq100"].strategy_components}
+    steady_components = {component.key for component in profiles["steady_dca"].strategy_components}
+    aggressive_components = {
+        component.key for component in profiles["aggressive_drawdown"].strategy_components
+    }
+    trend_components = {component.key for component in profiles["trend_guard"].strategy_components}
 
     assert sp500_components == {"fixed_contribution", "drawdown_add", "valuation_guard"}
     assert nasdaq_components == {"fixed_contribution", "drawdown_add", "ma_deviation"}
+    assert steady_components == {"fixed_contribution", "drawdown_add"}
+    assert aggressive_components == {"fixed_contribution", "drawdown_add", "ma_deviation"}
+    assert trend_components == {"fixed_contribution", "ma_deviation", "valuation_guard"}
 
 
 def test_disabling_drawdown_component_removes_drawdown_add_on():

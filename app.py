@@ -29,7 +29,7 @@ def main() -> None:
     with st.sidebar:
         st.header("参数")
         ticker = st.text_input("股票/ETF 代码", value="SPY")
-        selected_name = st.selectbox("资产类型", list(profile_names), index=1)
+        selected_name = st.selectbox("策略组合", list(profile_names), index=1)
         profile = profiles[profile_names[selected_name]]
         start = st.date_input("开始日期", value=date(2015, 1, 1))
         end = st.date_input("结束日期", value=date.today())
