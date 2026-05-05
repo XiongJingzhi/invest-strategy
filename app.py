@@ -8,6 +8,7 @@ import streamlit as st
 
 from invest_strategy.advice import build_advice
 from invest_strategy.backtest import run_backtest
+from invest_strategy.compare import compare_profiles
 from invest_strategy.data import download_prices
 from invest_strategy.display import monthly_display_frame
 from invest_strategy.models import StrategyComponent, ValuationInput
@@ -38,6 +39,16 @@ def main() -> None:
         ticker = resolve_ticker_choice(selected_ticker, custom_ticker, ticker_suggestions)
         selected_name = st.selectbox("策略组合", list(profile_names), index=1)
         profile = profiles[profile_names[selected_name]]
+        default_compare = [
+            name
+            for name in ("纯固定定投", selected_name, "稳健定投", "进攻回撤")
+            if name in profile_names
+        ]
+        compare_names = st.multiselect(
+            "对比策略组合",
+            list(profile_names),
+            default=list(dict.fromkeys(default_compare)),
+        )
         start = st.date_input("开始日期", value=date(2015, 1, 1))
         end = st.date_input("结束日期", value=date.today())
         monthly_contribution = st.number_input("每月基础定投金额", min_value=100.0, value=3000.0, step=100.0)
@@ -64,6 +75,20 @@ def main() -> None:
         signal = evaluate_strategy(prices, profile, valuation)
         advice = build_advice(profile.display_name, signal, monthly_contribution)
         result = run_backtest(prices, profile, monthly_contribution, valuation)
+        compare_profiles_selected = [profiles[profile_names[name]] for name in compare_names]
+        if profile.display_name not in compare_names:
+            compare_profiles_selected = [profile, *compare_profiles_selected]
+        else:
+            compare_profiles_selected = [
+                profile if item.display_name == profile.display_name else item
+                for item in compare_profiles_selected
+            ]
+        comparison = compare_profiles(
+            prices,
+            compare_profiles_selected,
+            monthly_contribution,
+            valuation,
+        )
     except Exception as exc:  # Streamlit should show a friendly message.
         st.error(str(exc))
         return
@@ -93,6 +118,17 @@ def main() -> None:
 
     st.subheader("月度操作")
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
+
+    st.subheader("策略组合对比")
+    st.dataframe(comparison.summary, use_container_width=True, hide_index=True)
+    compare_chart = px.line(
+        comparison.equity_curve,
+        x="日期",
+        y="组合市值",
+        color="策略组合",
+        title="不同策略组合市值对比",
+    )
+    st.plotly_chart(compare_chart, use_container_width=True)
 
 
 def _render_current_strategy(profile) -> None:

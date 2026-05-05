@@ -11,6 +11,10 @@ def test_default_profiles_cover_three_asset_roles():
         "steady_dca",
         "aggressive_drawdown",
         "trend_guard",
+        "pure_dca",
+        "crisis_cash_bucket",
+        "dividend_value_plus",
+        "ma_rebalance",
     }.issubset(profiles)
     assert profiles["low_vol_dividend"].display_name == "低波红利"
     assert profiles["sp500"].display_name == "标普500"
@@ -18,6 +22,10 @@ def test_default_profiles_cover_three_asset_roles():
     assert profiles["steady_dca"].display_name == "稳健定投"
     assert profiles["aggressive_drawdown"].display_name == "进攻回撤"
     assert profiles["trend_guard"].display_name == "趋势风控"
+    assert profiles["pure_dca"].display_name == "纯固定定投"
+    assert profiles["crisis_cash_bucket"].display_name == "现金桶危机加仓"
+    assert profiles["dividend_value_plus"].display_name == "红利估值增强"
+    assert profiles["ma_rebalance"].display_name == "均线再平衡"
 
 
 def test_growth_and_core_profiles_do_not_use_ma120_sell_rule():

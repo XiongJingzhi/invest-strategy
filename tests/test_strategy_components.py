@@ -24,12 +24,29 @@ def test_presets_are_built_from_selectable_components():
         component.key for component in profiles["aggressive_drawdown"].strategy_components
     }
     trend_components = {component.key for component in profiles["trend_guard"].strategy_components}
+    pure_components = {component.key for component in profiles["pure_dca"].strategy_components}
+    crisis_components = {
+        component.key for component in profiles["crisis_cash_bucket"].strategy_components
+    }
+    dividend_components = {
+        component.key for component in profiles["dividend_value_plus"].strategy_components
+    }
+    rebalance_components = {component.key for component in profiles["ma_rebalance"].strategy_components}
 
     assert sp500_components == {"fixed_contribution", "drawdown_add", "valuation_guard"}
     assert nasdaq_components == {"fixed_contribution", "drawdown_add", "ma_deviation"}
     assert steady_components == {"fixed_contribution", "drawdown_add"}
     assert aggressive_components == {"fixed_contribution", "drawdown_add", "ma_deviation"}
     assert trend_components == {"fixed_contribution", "ma_deviation", "valuation_guard"}
+    assert pure_components == {"fixed_contribution"}
+    assert crisis_components == {"fixed_contribution", "drawdown_add"}
+    assert dividend_components == {
+        "fixed_contribution",
+        "dividend_yield",
+        "valuation_guard",
+        "ma_deviation",
+    }
+    assert rebalance_components == {"fixed_contribution", "ma_deviation"}
 
 
 def test_disabling_drawdown_component_removes_drawdown_add_on():

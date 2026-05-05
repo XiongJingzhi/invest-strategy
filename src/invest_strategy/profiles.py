@@ -218,6 +218,112 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                 valuation_component(weight=0.1),
             ),
         ),
+        "pure_dca": AssetProfile(
+            key="pure_dca",
+            display_name="纯固定定投",
+            role="极简 + 长期在场",
+            base_description="只执行固定定投，不做回撤加仓、不做均线止买，作为所有复杂策略的基准线。",
+            strategy_notes=(
+                "每月按固定金额投入。",
+                "不根据标的回撤、均线、估值改变买入金额。",
+                "适合作为对照组，观察复杂策略是否真的创造增益。",
+            ),
+            fixed_layer_weight=1.0,
+            trend_ma_days=250,
+            strategy_components=(fixed_contribution_component(1.0),),
+        ),
+        "crisis_cash_bucket": AssetProfile(
+            key="crisis_cash_bucket",
+            display_name="现金桶危机加仓",
+            role="现金桶 + 极端机会",
+            base_description="平时低速定投，只有标的出现较大回撤时才显著动用现金桶。",
+            strategy_notes=(
+                "固定层保持低权重，避免正常行情消耗过多现金。",
+                "标的回撤 25% 后开始明显加仓，45% 后进入危机加仓。",
+                "适合现金储备充足、想等待大跌机会的用户。",
+            ),
+            fixed_layer_weight=0.4,
+            trend_ma_days=250,
+            drawdown_rules=(
+                DrawdownRule(-45, 5.0, "危机大额加仓"),
+                DrawdownRule(-35, 3.5, "现金桶重点加仓"),
+                DrawdownRule(-25, 2.0, "开始动用现金桶"),
+            ),
+            strategy_components=(
+                fixed_contribution_component(0.4),
+                drawdown_component(
+                    (
+                        DrawdownRule(-45, 5.0, "危机大额加仓"),
+                        DrawdownRule(-35, 3.5, "现金桶重点加仓"),
+                        DrawdownRule(-25, 2.0, "开始动用现金桶"),
+                    )
+                ),
+            ),
+        ),
+        "dividend_value_plus": AssetProfile(
+            key="dividend_value_plus",
+            display_name="红利估值增强",
+            role="红利 + 估值 + 趋势",
+            base_description="更偏红利/价值资产：股息率和估值优先，均线只做辅助加减速。",
+            strategy_notes=(
+                "股息率分位较高时提高买入倍数。",
+                "估值偏高时停止弹性买入。",
+                "低于 MA120 时加仓，高于 MA120 较多时停止弹性层。",
+            ),
+            fixed_layer_weight=0.8,
+            trend_ma_days=120,
+            dividend_weight=0.5,
+            valuation_weight=0.3,
+            ma_rules=(
+                MaRule(-15, 2.0, "价值低位加仓"),
+                MaRule(-5, 1.3, "温和加仓"),
+                MaRule(15, 0.0, "停止弹性买入", allow_elastic_buy=False),
+            ),
+            strategy_components=(
+                fixed_contribution_component(0.8),
+                dividend_component(weight=0.5),
+                valuation_component(weight=0.3),
+                ma_component(
+                    ma_days=120,
+                    rules=(
+                        MaRule(-15, 2.0, "价值低位加仓"),
+                        MaRule(-5, 1.3, "温和加仓"),
+                        MaRule(15, 0.0, "停止弹性买入", allow_elastic_buy=False),
+                    ),
+                ),
+            ),
+        ),
+        "ma_rebalance": AssetProfile(
+            key="ma_rebalance",
+            display_name="均线再平衡",
+            role="均线 + 再平衡",
+            base_description="用长期均线偏离控制买入节奏，适合希望少看估值、更多依赖价格趋势的用户。",
+            strategy_notes=(
+                "低于 MA200 时提高定投。",
+                "高于 MA200 15% 时降低弹性买入。",
+                "高于 MA200 25% 时停止弹性买入或减部分弹性仓。",
+            ),
+            fixed_layer_weight=0.9,
+            trend_ma_days=200,
+            ma_rules=(
+                MaRule(-20, 2.0, "均线低位加仓"),
+                MaRule(-10, 1.5, "提高定投"),
+                MaRule(15, 0.5, "降低弹性买入", allow_elastic_buy=False),
+                MaRule(25, 0.0, "减部分弹性仓", allow_elastic_buy=False),
+            ),
+            strategy_components=(
+                fixed_contribution_component(0.9),
+                ma_component(
+                    ma_days=200,
+                    rules=(
+                        MaRule(-20, 2.0, "均线低位加仓"),
+                        MaRule(-10, 1.5, "提高定投"),
+                        MaRule(15, 0.5, "降低弹性买入", allow_elastic_buy=False),
+                        MaRule(25, 0.0, "减部分弹性仓", allow_elastic_buy=False),
+                    ),
+                ),
+            ),
+        ),
     }
 
 
