@@ -4,10 +4,14 @@ from invest_strategy.tickers import get_suggested_tickers, resolve_ticker_choice
 def test_suggested_tickers_include_core_assets():
     suggestions = get_suggested_tickers()
     labels = [item.label for item in suggestions]
+    symbols = [item.symbol for item in suggestions]
 
     assert "SPY - 标普500 ETF" in labels
     assert "QQQ - 纳指100 ETF" in labels
     assert "515100.SS - A股红利低波ETF" in labels
+    assert "VOO" not in symbols
+    assert "IVV" not in symbols
+    assert "QQQM" not in symbols
 
 
 def test_resolve_ticker_choice_supports_custom_input():

@@ -19,10 +19,7 @@ class TickerSuggestion:
 def get_suggested_tickers() -> tuple[TickerSuggestion, ...]:
     return (
         TickerSuggestion("SPY", "标普500 ETF"),
-        TickerSuggestion("VOO", "标普500 ETF"),
-        TickerSuggestion("IVV", "标普500 ETF"),
         TickerSuggestion("QQQ", "纳指100 ETF"),
-        TickerSuggestion("QQQM", "纳指100 ETF"),
         TickerSuggestion("DIA", "道琼斯工业 ETF"),
         TickerSuggestion("IWM", "罗素2000 ETF"),
         TickerSuggestion("VT", "全球股票 ETF"),
