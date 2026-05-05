@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from html import escape
 
 import pandas as pd
 import plotly.express as px
@@ -120,7 +121,7 @@ def main() -> None:
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
 
     st.subheader("策略组合对比")
-    st.dataframe(comparison.summary, use_container_width=True, hide_index=True)
+    _render_comparison_summary(comparison.summary)
     compare_chart = px.line(
         comparison.equity_curve,
         x="日期",
@@ -149,6 +150,45 @@ def _render_current_strategy(profile) -> None:
     col2.write("、".join(disabled_components) if disabled_components else "无")
 
     st.dataframe(pd.DataFrame(get_profile_strategy_rows(profile)), use_container_width=True)
+
+
+def _render_comparison_summary(summary: pd.DataFrame) -> None:
+    st.markdown(_comparison_table_html(summary), unsafe_allow_html=True)
+
+
+def _comparison_table_html(summary: pd.DataFrame) -> str:
+    headers = "".join(f"<th>{escape(str(column))}</th>" for column in summary.columns)
+    rows = []
+    for _, row in summary.iterrows():
+        cells = []
+        for column in summary.columns:
+            value = row[column]
+            text = "" if pd.isna(value) else str(value)
+            if column == "组合规则":
+                cells.append(
+                    '<td class="rules-cell" title="'
+                    + escape(text, quote=True)
+                    + '">'
+                    + escape(text)
+                    + "</td>"
+                )
+            else:
+                cells.append("<td>" + escape(text) + "</td>")
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+
+    return (
+        "<style>"
+        ".compare-table{width:100%;border-collapse:collapse;font-size:14px;}"
+        ".compare-table th,.compare-table td{border:1px solid #e5e7eb;padding:8px;text-align:left;vertical-align:top;}"
+        ".compare-table th{background:#f8fafc;font-weight:600;}"
+        ".compare-table .rules-cell{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}"
+        "</style>"
+        '<table class="compare-table"><thead><tr>'
+        + headers
+        + "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table>"
+    )
 
 
 def _profile_editor(profile):
