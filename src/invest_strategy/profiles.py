@@ -9,9 +9,9 @@ def get_default_profiles() -> dict[str, AssetProfile]:
     return {
         "low_vol_dividend": AssetProfile(
             key="low_vol_dividend",
-            display_name="低波红利",
-            role="防守 + 现金流",
-            base_description="股息率/PB/PE 优先，MA120/MA250 辅助判断。",
+            display_name="红利现金流防守",
+            role="红利 + 价值 + 防守",
+            base_description="适合红利低波类标的的组合：股息率/PB/PE 优先，MA120/MA250 辅助判断。",
             strategy_notes=(
                 "正常情况下保持每月定投，低估时提高弹性买入。",
                 "股息率处于历史高位时优先加仓，PB/PE 作为辅助确认。",
@@ -47,9 +47,9 @@ def get_default_profiles() -> dict[str, AssetProfile]:
         ),
         "sp500": AssetProfile(
             key="sp500",
-            display_name="标普500",
-            role="核心 + 全球权益底仓",
-            base_description="固定层持续定投，回撤加仓，估值只控制弹性层。",
+            display_name="全球核心定投",
+            role="核心 + 宽基 + 长期",
+            base_description="适合全球核心宽基的组合：固定层持续定投，回撤加仓，估值只控制弹性层。",
             strategy_notes=(
                 "固定层长期不断投，不因短期估值或均线信号轻易中断。",
                 "标的价格从历史高点回撤 10% 后逐级提高投入，30% 后动用现金桶。",
@@ -80,11 +80,11 @@ def get_default_profiles() -> dict[str, AssetProfile]:
         ),
         "nasdaq100": AssetProfile(
             key="nasdaq100",
-            display_name="纳指100",
-            role="进攻 + 科技增强",
-            base_description="小额定投，深度回撤加仓，MA250 控制弹性仓。",
+            display_name="科技成长进攻",
+            role="成长 + 高波动 + 进攻",
+            base_description="适合科技成长类高波动标的的组合：小额定投，深度回撤加仓，MA250 控制弹性仓。",
             strategy_notes=(
-                "固定层小额持续，仓位不应超过标普500核心仓。",
+                "固定层小额持续，仓位不应超过全球核心宽基仓。",
                 "标的价格回撤 20% 后开始加大买入，30%-40% 是重点加仓区。",
                 "高于 MA250 20% 停止弹性买入，30% 以上可减部分弹性仓。",
             ),

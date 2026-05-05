@@ -16,9 +16,9 @@ def test_default_profiles_cover_three_asset_roles():
         "dividend_value_plus",
         "ma_rebalance",
     }.issubset(profiles)
-    assert profiles["low_vol_dividend"].display_name == "低波红利"
-    assert profiles["sp500"].display_name == "标普500"
-    assert profiles["nasdaq100"].display_name == "纳指100"
+    assert profiles["low_vol_dividend"].display_name == "红利现金流防守"
+    assert profiles["sp500"].display_name == "全球核心定投"
+    assert profiles["nasdaq100"].display_name == "科技成长进攻"
     assert profiles["steady_dca"].display_name == "稳健定投"
     assert profiles["aggressive_drawdown"].display_name == "进攻回撤"
     assert profiles["trend_guard"].display_name == "趋势风控"

@@ -19,6 +19,6 @@ def test_compare_profiles_returns_summary_and_equity_curve():
         monthly_contribution=1000,
     )
 
-    assert comparison.summary["策略组合"].tolist() == ["标普500", "稳健定投"]
+    assert comparison.summary["策略组合"].tolist() == ["全球核心定投", "稳健定投"]
     assert {"日期", "策略组合", "组合市值"}.issubset(comparison.equity_curve.columns)
     assert len(comparison.equity_curve["策略组合"].unique()) == 2
