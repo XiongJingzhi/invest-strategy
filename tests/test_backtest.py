@@ -28,6 +28,7 @@ def test_backtest_tracks_shares_invested_and_value():
 
     assert result.summary.total_invested == 2000
     assert result.summary.final_value == 2000
+    assert result.summary.annualized_return_pct == 0
     assert result.monthly.iloc[-1]["shares"] == 20
 
 
@@ -48,3 +49,11 @@ def test_backtest_resamples_short_daily_history_to_monthly_operations():
 
     assert len(result.monthly) == 2
     assert result.monthly["date"].dt.strftime("%Y-%m").tolist() == ["2024-01", "2024-02"]
+
+
+def test_backtest_summary_includes_annualized_return():
+    profile = get_default_profiles()["sp500"]
+    result = run_backtest(monthly_prices([100.0] * 12 + [150.0]), monthly_contribution=1000, profile=profile)
+
+    assert result.summary.total_return_pct == 46.15
+    assert result.summary.annualized_return_pct == 46.15

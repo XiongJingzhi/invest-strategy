@@ -63,6 +63,7 @@ class BacktestSummary:
     total_invested: float
     final_value: float
     total_return_pct: float
+    annualized_return_pct: float
     max_drawdown_pct: float
 
 

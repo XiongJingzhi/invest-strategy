@@ -59,10 +59,12 @@ def run_backtest(
     output = pd.DataFrame(rows)
     final_value = float(output.iloc[-1]["value"])
     total_return_pct = (final_value / total_invested - 1) * 100 if total_invested else 0.0
+    annualized_return_pct = _annualized_return_pct(output, final_value, total_invested)
     summary = BacktestSummary(
         total_invested=round(total_invested, 2),
         final_value=round(final_value, 2),
         total_return_pct=round(total_return_pct, 2),
+        annualized_return_pct=round(annualized_return_pct, 2),
         max_drawdown_pct=round(max_drawdown_pct, 2),
     )
     return BacktestResult(monthly=output, summary=summary)
@@ -71,3 +73,18 @@ def run_backtest(
 def _monthly_prices(prices: pd.DataFrame) -> pd.DataFrame:
     frame = prices.set_index("date")
     return frame.resample("ME").last().dropna(subset=["close"]).reset_index()
+
+
+def _annualized_return_pct(output: pd.DataFrame, final_value: float, total_invested: float) -> float:
+    if total_invested <= 0 or len(output) < 2:
+        return 0.0
+
+    start = pd.Timestamp(output.iloc[0]["date"])
+    end = pd.Timestamp(output.iloc[-1]["date"])
+    months = (end.year - start.year) * 12 + (end.month - start.month)
+    if months <= 0:
+        return 0.0
+
+    years = months / 12
+    total_return = final_value / total_invested
+    return (total_return ** (1 / years) - 1) * 100

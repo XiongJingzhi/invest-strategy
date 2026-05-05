@@ -66,11 +66,12 @@ def main() -> None:
     st.markdown(f"### {advice.summary}")
     st.write(advice.details)
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("累计投入", f"{result.summary.total_invested:,.0f}")
     col2.metric("期末市值", f"{result.summary.final_value:,.0f}")
     col3.metric("总收益率", f"{result.summary.total_return_pct:.2f}%")
-    col4.metric("组合最大回撤", f"{result.summary.max_drawdown_pct:.2f}%")
+    col4.metric("年化回报率", f"{result.summary.annualized_return_pct:.2f}%")
+    col5.metric("组合最大回撤", f"{result.summary.max_drawdown_pct:.2f}%")
 
     signal_rows = {
         "操作": signal.action,
