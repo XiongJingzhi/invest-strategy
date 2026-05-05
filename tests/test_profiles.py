@@ -15,7 +15,7 @@ def test_default_profiles_cover_three_asset_roles():
         "crisis_cash_bucket",
         "dividend_value_plus",
         "ma_rebalance",
-        "dividend_low_vol_drawdown_ma",
+        "low_vol_dividend_small_drawdown",
     }.issubset(profiles)
     assert profiles["low_vol_dividend"].display_name == "红利现金流防守"
     assert profiles["sp500"].display_name == "全球核心定投"
@@ -27,7 +27,7 @@ def test_default_profiles_cover_three_asset_roles():
     assert profiles["crisis_cash_bucket"].display_name == "现金桶危机加仓"
     assert profiles["dividend_value_plus"].display_name == "红利估值增强"
     assert profiles["ma_rebalance"].display_name == "均线再平衡"
-    assert profiles["dividend_low_vol_drawdown_ma"].display_name == "红利低波回撤均线"
+    assert profiles["low_vol_dividend_small_drawdown"].display_name == "低波红利小回撤增强"
 
 
 def test_growth_and_core_profiles_do_not_use_ma120_sell_rule():

@@ -324,15 +324,15 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                 ),
             ),
         ),
-        "dividend_low_vol_drawdown_ma": AssetProfile(
-            key="dividend_low_vol_drawdown_ma",
-            display_name="红利低波回撤均线",
-            role="红利低波 + 回撤 + MA250",
-            base_description="适合红利低波类标的：平时正常定投，按标的回撤阶梯加仓，高于 MA250 后降低或停止弹性买入。",
+        "low_vol_dividend_small_drawdown": AssetProfile(
+            key="low_vol_dividend_small_drawdown",
+            display_name="低波红利小回撤增强",
+            role="低波红利 + 小回撤增强 + MA250",
+            base_description="适合低波红利类标的：正常 1 倍定投，小回撤逐级增强，高于 MA250 后降速并只处理弹性仓。",
             strategy_notes=(
                 "正常状态保持 1.0 倍定投。",
                 "标的回撤 -5%、-10%、-15%、-20% 时逐级提高到 1.2、1.5、2.0、2.5 倍。",
-                "高于 MA250 20% 降到 0.7 倍，30% 停止弹性买入，35% 只考虑卖弹性仓。",
+                "高于 MA250 15% 降到 0.7 倍，25% 降到 0.5 倍，35% 以上只卖弹性仓。",
             ),
             fixed_layer_weight=1.0,
             trend_ma_days=250,
@@ -343,9 +343,10 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                 DrawdownRule(-5, 1.2, "回撤 -5% 加仓"),
             ),
             ma_rules=(
-                MaRule(20, 0.7, "高于 MA250 20% 降低定投"),
-                MaRule(30, 0.0, "停止弹性买入", allow_elastic_buy=False),
-                MaRule(35, 0.0, "只考虑卖弹性仓", allow_elastic_buy=False),
+                MaRule(15, 0.7, "高于 MA250 15% 降速"),
+                MaRule(25, 0.5, "高于 MA250 25% 降速"),
+                MaRule(35, 0.0, "卖弹性仓 20%，不卖核心仓", allow_elastic_buy=False),
+                MaRule(45, 0.0, "卖弹性仓 50%，不卖核心仓", allow_elastic_buy=False),
             ),
             strategy_components=(
                 fixed_contribution_component(1.0),
@@ -360,9 +361,10 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                 ma_component(
                     ma_days=250,
                     rules=(
-                        MaRule(20, 0.7, "高于 MA250 20% 降低定投"),
-                        MaRule(30, 0.0, "停止弹性买入", allow_elastic_buy=False),
-                        MaRule(35, 0.0, "只考虑卖弹性仓", allow_elastic_buy=False),
+                        MaRule(15, 0.7, "高于 MA250 15% 降速"),
+                        MaRule(25, 0.5, "高于 MA250 25% 降速"),
+                        MaRule(35, 0.0, "卖弹性仓 20%，不卖核心仓", allow_elastic_buy=False),
+                        MaRule(45, 0.0, "卖弹性仓 50%，不卖核心仓", allow_elastic_buy=False),
                     ),
                 ),
             ),

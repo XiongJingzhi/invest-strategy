@@ -32,8 +32,8 @@ def test_presets_are_built_from_selectable_components():
         component.key for component in profiles["dividend_value_plus"].strategy_components
     }
     rebalance_components = {component.key for component in profiles["ma_rebalance"].strategy_components}
-    dividend_drawdown_ma_components = {
-        component.key for component in profiles["dividend_low_vol_drawdown_ma"].strategy_components
+    low_vol_small_drawdown_components = {
+        component.key for component in profiles["low_vol_dividend_small_drawdown"].strategy_components
     }
 
     assert sp500_components == {"fixed_contribution", "drawdown_add", "valuation_guard"}
@@ -50,15 +50,15 @@ def test_presets_are_built_from_selectable_components():
         "ma_deviation",
     }
     assert rebalance_components == {"fixed_contribution", "ma_deviation"}
-    assert dividend_drawdown_ma_components == {
+    assert low_vol_small_drawdown_components == {
         "fixed_contribution",
         "drawdown_add",
         "ma_deviation",
     }
 
 
-def test_dividend_low_vol_drawdown_ma_preset_uses_requested_rules():
-    profile = get_default_profiles()["dividend_low_vol_drawdown_ma"]
+def test_low_vol_dividend_small_drawdown_preset_uses_requested_rules():
+    profile = get_default_profiles()["low_vol_dividend_small_drawdown"]
     drawdown = next(component for component in profile.strategy_components if component.key == "drawdown_add")
     ma = next(component for component in profile.strategy_components if component.key == "ma_deviation")
 
@@ -71,21 +71,27 @@ def test_dividend_low_vol_drawdown_ma_preset_uses_requested_rules():
     assert ma.params["ma_days"] == 250
     assert ma.params["rules"] == [
         {
-            "threshold_pct": 20,
+            "threshold_pct": 15,
             "multiplier": 0.7,
-            "action": "高于 MA250 20% 降低定投",
+            "action": "高于 MA250 15% 降速",
             "allow_elastic_buy": True,
         },
         {
-            "threshold_pct": 30,
-            "multiplier": 0.0,
-            "action": "停止弹性买入",
-            "allow_elastic_buy": False,
+            "threshold_pct": 25,
+            "multiplier": 0.5,
+            "action": "高于 MA250 25% 降速",
+            "allow_elastic_buy": True,
         },
         {
             "threshold_pct": 35,
             "multiplier": 0.0,
-            "action": "只考虑卖弹性仓",
+            "action": "卖弹性仓 20%，不卖核心仓",
+            "allow_elastic_buy": False,
+        },
+        {
+            "threshold_pct": 45,
+            "multiplier": 0.0,
+            "action": "卖弹性仓 50%，不卖核心仓",
             "allow_elastic_buy": False,
         },
     ]
