@@ -22,3 +22,36 @@ def monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
     display["date"] = pd.to_datetime(display["date"]).dt.strftime("%Y-%m")
     display = display.rename(columns=MONTHLY_COLUMN_NAMES)
     return display[list(MONTHLY_COLUMN_NAMES.values())]
+
+
+def target_monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
+    display = monthly.copy()
+    display["date"] = pd.to_datetime(display["date"]).dt.strftime("%Y-%m")
+    display = display.rename(
+        columns={
+            "date": "日期",
+            "close": "标的收盘价",
+            "drawdown_pct": "标的最大回撤",
+            "action": "操作",
+            "multiplier": "买入倍数",
+            "contribution": "投入金额",
+            "bought_shares": "买入份额",
+            "shares": "累计份额",
+            "invested": "累计投入",
+            "value": "组合市值",
+        }
+    )
+    return display[
+        [
+            "日期",
+            "标的收盘价",
+            "标的最大回撤",
+            "操作",
+            "买入倍数",
+            "投入金额",
+            "买入份额",
+            "累计份额",
+            "累计投入",
+            "组合市值",
+        ]
+    ]

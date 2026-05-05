@@ -12,7 +12,7 @@ from invest_strategy.advice import build_advice
 from invest_strategy.backtest import run_backtest
 from invest_strategy.compare import compare_profiles
 from invest_strategy.data import download_prices
-from invest_strategy.display import monthly_display_frame
+from invest_strategy.display import monthly_display_frame, target_monthly_display_frame
 from invest_strategy.models import StrategyComponent, ValuationInput
 from invest_strategy.profiles import (
     get_default_profiles,
@@ -117,6 +117,19 @@ def main() -> None:
 
     chart = px.line(result.monthly, x="date", y=["invested", "value"], title="投入本金 vs 组合市值")
     st.plotly_chart(chart, use_container_width=True)
+
+    st.subheader("标的月度走势与回撤")
+    target_col1, target_col2 = st.columns(2)
+    target_price_chart = px.line(result.monthly, x="date", y="close", title="标的月度收盘价")
+    target_col1.plotly_chart(target_price_chart, use_container_width=True)
+    target_drawdown_chart = px.area(
+        result.monthly,
+        x="date",
+        y="drawdown_pct",
+        title="标的月度最大回撤",
+    )
+    target_col2.plotly_chart(target_drawdown_chart, use_container_width=True)
+    st.dataframe(target_monthly_display_frame(result.monthly), use_container_width=True, hide_index=True)
 
     st.subheader("月度操作")
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
