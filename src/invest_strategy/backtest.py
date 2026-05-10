@@ -61,6 +61,8 @@ def run_backtest(
                 "action": signal.action,
                 "dividend_yield": signal.dividend_yield,
                 "dividend_percentile": signal.dividend_percentile,
+                "pe": valuation.pe if valuation else None,
+                "pe_percentile": valuation.pe_percentile if valuation else None,
             }
         )
 
@@ -88,11 +90,18 @@ def _build_valuation_lookup(
     lookup: dict[pd.Timestamp, ValuationInput] = {}
     for _, row in valuation_history.iterrows():
         dt = pd.Timestamp(row["date"])
-        dp = float(row["dividend_percentile"]) if pd.notna(row.get("dividend_percentile")) else None
         dy = float(row["dividend_yield"]) if pd.notna(row.get("dividend_yield")) else None
-        lookup[dt] = ValuationInput(dividend_percentile=dp)
-        if dy is not None:
-            lookup[dt] = ValuationInput(dividend_percentile=dp)
+        dp = float(row["dividend_percentile"]) if pd.notna(row.get("dividend_percentile")) else None
+        pe = float(row["pe"]) if pd.notna(row.get("pe")) else None
+        pe_percentile = (
+            float(row["pe_percentile"]) if pd.notna(row.get("pe_percentile")) else None
+        )
+        lookup[dt] = ValuationInput(
+            dividend_yield=dy,
+            dividend_percentile=dp,
+            pe=pe,
+            pe_percentile=pe_percentile,
+        )
     return lookup
 
 

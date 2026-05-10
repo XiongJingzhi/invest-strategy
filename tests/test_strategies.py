@@ -69,6 +69,29 @@ def test_nasdaq_normal_state_uses_smaller_fixed_layer_weight():
     assert signal.multiplier == 0.6
 
 
+def test_fixed_never_stop_small_drawdown_strategy_uses_fine_grained_drawdown_rules():
+    profile = get_default_profiles()["fixed_never_stop_small_dd"]
+    prices = price_frame([100.0, 92.5])
+
+    signal = evaluate_strategy(prices, profile, ValuationInput())
+
+    assert signal.drawdown_pct == -7.5
+    assert signal.action == "回撤 -7.5% 加仓"
+    assert signal.multiplier == 1.5
+
+
+def test_fixed_never_stop_small_drawdown_strategy_keeps_fixed_layer_above_ma250():
+    profile = get_default_profiles()["fixed_never_stop_small_dd"]
+    prices = price_frame([100.0] * 260 + [132.0])
+
+    signal = evaluate_strategy(prices, profile, ValuationInput())
+
+    assert signal.ma_deviation_pct >= 30
+    assert signal.action == "暂停弹性层，固定层继续"
+    assert signal.allow_elastic_buy is False
+    assert signal.multiplier == 1.0
+
+
 def test_steady_dca_uses_valuation_when_provided():
     profile = get_default_profiles()["steady_dca"]
     prices = price_frame([100.0, 101.0, 102.0])

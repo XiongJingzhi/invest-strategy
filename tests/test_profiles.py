@@ -1,4 +1,4 @@
-from invest_strategy.profiles import get_default_profiles
+from invest_strategy.profiles import get_default_profiles, get_profile_strategy_rows
 
 
 def test_default_profiles_cover_three_asset_roles():
@@ -16,6 +16,7 @@ def test_default_profiles_cover_three_asset_roles():
         "trend_guard",
         "ma_rebalance",
         "low_vol_small_dd",
+        "fixed_never_stop_small_dd",
         "desensitized",
         "simple_practical",
         "deep_value",
@@ -36,6 +37,7 @@ def test_default_profiles_cover_three_asset_roles():
     assert profiles["trend_guard"].display_name == "趋势风控"
     assert profiles["ma_rebalance"].display_name == "均线再平衡"
     assert profiles["low_vol_small_dd"].display_name == "低波小回撤增强"
+    assert profiles["fixed_never_stop_small_dd"].display_name == "固定不停小回撤"
     assert profiles["desensitized"].display_name == "降低敏感度版"
     assert profiles["simple_practical"].display_name == "简单实盘版"
     assert profiles["deep_value"].display_name == "深度价值版"
@@ -51,3 +53,15 @@ def test_growth_and_core_profiles_do_not_use_ma120_sell_rule():
     assert profiles["growth_aggressive"].trend_ma_days == 250
     assert profiles["core_dca"].partial_sell_above_ma_pct is None
     assert profiles["growth_aggressive"].partial_sell_above_ma_pct == 30
+
+
+def test_valuation_component_copy_mentions_pe_only():
+    profiles = get_default_profiles()
+    text = "\n".join(
+        str(value)
+        for row in get_profile_strategy_rows(profiles["cashflow_defense"])
+        for value in row.values()
+    )
+
+    assert "PB/PE" not in text
+    assert "PE" in text

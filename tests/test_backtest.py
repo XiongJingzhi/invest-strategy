@@ -1,6 +1,6 @@
 import pandas as pd
 
-from invest_strategy.backtest import run_backtest
+from invest_strategy.backtest import _build_valuation_lookup, run_backtest
 from invest_strategy.profiles import get_default_profiles
 
 
@@ -68,3 +68,44 @@ def test_backtest_summary_includes_annualized_return():
 
     assert result.summary.total_return_pct == 46.15
     assert result.summary.annualized_return_pct == 46.15
+
+
+def test_backtest_valuation_lookup_preserves_pe_percentile():
+    valuation_history = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2024-12-31"]),
+            "dividend_yield": [5.9],
+            "dividend_percentile": [70.0],
+            "pe": [8.86],
+            "pe_percentile": [12.5],
+        }
+    )
+
+    lookup = _build_valuation_lookup(valuation_history)
+
+    valuation = lookup[pd.Timestamp("2024-12-31")]
+    assert valuation.dividend_percentile == 70.0
+    assert valuation.dividend_yield == 5.9
+    assert valuation.pe == 8.86
+    assert valuation.pe_percentile == 12.5
+
+
+def test_backtest_monthly_rows_include_pe_metrics():
+    profile = get_default_profiles()["core_dca"]
+    valuation_history = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2024-01-31"]),
+            "pe": [8.86],
+            "pe_percentile": [78.6],
+        }
+    )
+
+    result = run_backtest(
+        monthly_prices([100.0]),
+        profile,
+        monthly_contribution=1000,
+        valuation_history=valuation_history,
+    )
+
+    assert result.monthly.iloc[0]["pe"] == 8.86
+    assert result.monthly.iloc[0]["pe_percentile"] == 78.6

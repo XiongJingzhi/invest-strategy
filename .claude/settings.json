@@ -12,7 +12,8 @@
       "Bash(python -c ' *)",
       "Bash(mkdir -p ~/.streamlit)",
       "Bash(cat)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m pip install akshare -q)"
     ]
   }
 }

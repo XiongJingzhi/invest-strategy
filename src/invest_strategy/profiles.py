@@ -195,10 +195,10 @@ def get_default_profiles() -> dict[str, AssetProfile]:
             key="cashflow_defense",
             display_name="现金流防守",
             role="价值 + 估值 + 防守",
-            base_description="适合价值类标的的组合：股息率/PB/PE 优先，MA120/MA250 辅助判断。",
+            base_description="适合价值类标的的组合：股息率/PE 优先，MA120/MA250 辅助判断。",
             strategy_notes=(
                 "正常情况下保持每月定投，低估时提高弹性买入。",
-                "股息率处于历史高位时优先加仓，PB/PE 作为辅助确认。",
+                "股息率处于历史高位时优先加仓，PE 作为辅助确认。",
                 "高于 MA120 10% 停止弹性买入，高于 20% 可减部分仓位。",
             ),
             fixed_layer_weight=1.0,
@@ -365,6 +365,47 @@ def get_default_profiles() -> dict[str, AssetProfile]:
                         MaRule(25, 0.5, "高于 MA250 25% 降速"),
                         MaRule(35, 0.0, "卖弹性仓 20%，不卖核心仓", allow_elastic_buy=False),
                         MaRule(45, 0.0, "卖弹性仓 50%，不卖核心仓", allow_elastic_buy=False),
+                    ),
+                ),
+            ),
+        ),
+        "fixed_never_stop_small_dd": AssetProfile(
+            key="fixed_never_stop_small_dd",
+            display_name="固定不停小回撤",
+            role="固定层不停 + 小回撤增强 + MA250 控制弹性层",
+            base_description="固定层每月 1 倍永不停，小回撤逐级加仓；高于 MA250 后只降低或暂停弹性层。",
+            strategy_notes=(
+                "固定层每月 1.0 倍定投，任何高位信号都不停止固定层。",
+                "标的回撤 -5%、-7.5%、-10%、-12.5% 时逐级提高到 1.2、1.5、2.0、2.5 倍。",
+                "高于 MA250 20% 弹性层降速，高于 30% 暂停弹性层，固定层继续。",
+            ),
+            fixed_layer_weight=1.0,
+            trend_ma_days=250,
+            drawdown_rules=(
+                DrawdownRule(-12.5, 2.5, "回撤 -12.5% 加仓"),
+                DrawdownRule(-10, 2.0, "回撤 -10% 加仓"),
+                DrawdownRule(-7.5, 1.5, "回撤 -7.5% 加仓"),
+                DrawdownRule(-5, 1.2, "回撤 -5% 加仓"),
+            ),
+            ma_rules=(
+                MaRule(20, 1.0, "弹性层降速至 0.7x，固定层继续", allow_elastic_buy=False),
+                MaRule(30, 1.0, "暂停弹性层，固定层继续", allow_elastic_buy=False),
+            ),
+            strategy_components=(
+                fixed_contribution_component(1.0),
+                drawdown_component(
+                    (
+                        DrawdownRule(-12.5, 2.5, "回撤 -12.5% 加仓"),
+                        DrawdownRule(-10, 2.0, "回撤 -10% 加仓"),
+                        DrawdownRule(-7.5, 1.5, "回撤 -7.5% 加仓"),
+                        DrawdownRule(-5, 1.2, "回撤 -5% 加仓"),
+                    )
+                ),
+                ma_component(
+                    ma_days=250,
+                    rules=(
+                        MaRule(20, 1.0, "弹性层降速至 0.7x，固定层继续", allow_elastic_buy=False),
+                        MaRule(30, 1.0, "暂停弹性层，固定层继续", allow_elastic_buy=False),
                     ),
                 ),
             ),
@@ -669,7 +710,7 @@ def dividend_component(weight: float) -> StrategyComponent:
 def valuation_component(weight: float) -> StrategyComponent:
     return StrategyComponent(
         key="valuation_guard",
-        display_name="PB/PE估值辅助",
+        display_name="PE估值辅助",
         component_type="valuation_guard",
         priority=80,
         params={"weight": weight, "high_percentile": 90},
@@ -746,7 +787,7 @@ def get_profile_strategy_rows(profile: AssetProfile) -> list[dict[str, object]]:
         rows.append(
             {
                 "策略": "估值辅助",
-                "触发条件": f"权重 {profile.valuation_weight:.0%}，PB/PE 分位辅助判断",
+                "触发条件": f"权重 {profile.valuation_weight:.0%}，PE 分位辅助判断",
                 "动作": "高估时控制弹性层",
                 "买入倍数": "辅助信号",
                 "是否允许弹性买入": "视估值而定",

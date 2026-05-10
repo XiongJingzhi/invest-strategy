@@ -53,6 +53,8 @@ class ValuationInput:
     dividend_percentile: float | None = None
     pb_percentile: float | None = None
     pe_percentile: float | None = None
+    dividend_yield: float | None = None
+    pe: float | None = None
 
 
 @dataclass

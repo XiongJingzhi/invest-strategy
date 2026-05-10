@@ -17,7 +17,6 @@ from invest_strategy.data import download_dividend_percentiles, download_prices
 from invest_strategy.display import (
     comparison_display_frame,
     monthly_display_frame,
-    target_monthly_display_frame,
 )
 from invest_strategy.models import AssetProfile, StrategyComponent, ValuationInput
 from invest_strategy.profiles import (
@@ -40,6 +39,8 @@ from invest_strategy.tickers import (
 
 _SESSION_CUSTOM = "custom_profiles"
 _SESSION_LOADED = "custom_profiles_loaded"
+_SESSION_PROFILE_SELECT = "selected_profile_widget"
+_SESSION_PENDING_PROFILE_SELECT = "pending_selected_profile"
 _CUSTOM_PROFILES_FILE = Path.home() / ".invest-strategy-custom-profiles.json"
 
 _COMPONENT_OPTIONS = {
@@ -47,12 +48,13 @@ _COMPONENT_OPTIONS = {
     "回撤加仓": "drawdown_add",
     "均线偏离": "ma_deviation",
     "股息率分位": "dividend_yield",
-    "PB/PE估值辅助": "valuation_guard",
+    "PE估值辅助": "valuation_guard",
 }
 
 
 def main() -> None:
     st.set_page_config(page_title="投资策略回测", layout="wide")
+    _apply_compact_layout()
     st.title("投资策略回测与建议")
 
     default_profiles = get_default_profiles()
@@ -63,6 +65,7 @@ def main() -> None:
 
     all_profiles = {**default_profiles, **custom_profiles}
     profile_names = {p.display_name: k for k, p in all_profiles.items()}
+    _apply_pending_profile_selection(profile_names)
 
     with st.sidebar:
         ticker_options = [item.label for item in ticker_suggestions] + [CUSTOM_TICKER_LABEL]
@@ -73,7 +76,14 @@ def main() -> None:
         ticker = resolve_ticker_choice(selected_ticker, custom_ticker, ticker_suggestions)
 
         profile_list = list(profile_names)
-        selected_name = st.selectbox("策略", profile_list, index=min(1, len(profile_list) - 1))
+        if st.session_state.get(_SESSION_PROFILE_SELECT) not in profile_names:
+            st.session_state.pop(_SESSION_PROFILE_SELECT, None)
+        selected_name = st.selectbox(
+            "策略",
+            profile_list,
+            index=_default_profile_index(profile_list),
+            key=_SESSION_PROFILE_SELECT,
+        )
         profile_key = profile_names[selected_name]
 
         col_new, col_copy, col_del = st.columns(3)
@@ -203,7 +213,6 @@ def main() -> None:
         title="标的月度最大回撤",
     )
     target_col2.plotly_chart(target_drawdown_chart, use_container_width=True)
-    st.dataframe(target_monthly_display_frame(result.monthly), use_container_width=True, hide_index=True)
 
     st.subheader("月度操作")
     st.dataframe(monthly_display_frame(result.monthly), use_container_width=True)
@@ -221,11 +230,16 @@ def main() -> None:
         )
     with tool_col2:
         _render_copy_button(comparison_tsv)
-    st.dataframe(
-        comparison_display_frame(comparison.summary),
+    comparison_display = comparison_display_frame(comparison.summary)
+    st.caption("点击表格中的策略行，可以切换为当前策略组合。")
+    comparison_event = st.dataframe(
+        comparison_display,
         use_container_width=True,
         hide_index=True,
         height=360,
+        key="strategy-comparison-table",
+        on_select="rerun",
+        selection_mode="single-row",
         column_config={
             "策略组合": st.column_config.TextColumn("策略组合", width="medium"),
             "投入份额": st.column_config.NumberColumn("投入份额", format="%.2f", width="small"),
@@ -237,6 +251,15 @@ def main() -> None:
             "组合最大回撤": st.column_config.NumberColumn("组合最大回撤", format="%.2f%%", width="small"),
         },
     )
+    selected_profile_from_table = _comparison_selected_profile_name(
+        comparison_event,
+        comparison_display,
+        valid_profile_names=set(profile_names),
+        current_name=selected_name,
+    )
+    if selected_profile_from_table:
+        st.session_state[_SESSION_PENDING_PROFILE_SELECT] = selected_profile_from_table
+        st.rerun()
     compare_chart = px.line(
         comparison.equity_curve,
         x="日期",
@@ -672,12 +695,107 @@ def _current_valuation_from_history(
     if valuation_history is None or valuation_history.empty:
         return ValuationInput()
     last = valuation_history.iloc[-1]
+    dy = float(last["dividend_yield"]) if pd.notna(last.get("dividend_yield")) else None
     dp = float(last["dividend_percentile"]) if pd.notna(last.get("dividend_percentile")) else None
-    return ValuationInput(dividend_percentile=dp)
+    pe = float(last["pe"]) if pd.notna(last.get("pe")) else None
+    pe_percentile = float(last["pe_percentile"]) if pd.notna(last.get("pe_percentile")) else None
+    return ValuationInput(
+        dividend_yield=dy,
+        dividend_percentile=dp,
+        pe=pe,
+        pe_percentile=pe_percentile,
+    )
 
 
 def _fmt_pct(value: float | None) -> str:
     return "N/A" if value is None else f"{value:.2f}%"
+
+
+def _apply_compact_layout() -> None:
+    st.markdown(f"<style>{_compact_layout_css()}</style>", unsafe_allow_html=True)
+
+
+def _compact_layout_css() -> str:
+    return """
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1.5rem;
+    }
+    h1 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+    h2, h3 {
+        margin-top: 0.75rem;
+        margin-bottom: 0.35rem;
+    }
+    section[data-testid="stSidebar"] .block-container {
+        padding-top: 0.8rem;
+        padding-bottom: 1rem;
+    }
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        gap: 0.35rem;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"] {
+        margin-bottom: 0.15rem;
+    }
+    div[data-testid="stMetric"] {
+        padding-top: 0.2rem;
+        padding-bottom: 0.2rem;
+    }
+    """
+
+
+def _apply_pending_profile_selection(profile_names: dict[str, str]) -> None:
+    pending = st.session_state.pop(_SESSION_PENDING_PROFILE_SELECT, None)
+    if pending in profile_names:
+        st.session_state[_SESSION_PROFILE_SELECT] = pending
+
+
+def _default_profile_index(profile_list: list[str]) -> int:
+    if not profile_list:
+        return 0
+    try:
+        return profile_list.index("纯固定定投")
+    except ValueError:
+        return 0
+
+
+def _comparison_selected_profile_name(
+    event,
+    display_frame: pd.DataFrame,
+    valid_profile_names: set[str],
+    current_name: str,
+) -> str | None:
+    rows = _selected_dataframe_rows(event)
+    if not rows:
+        return None
+
+    row_index = rows[0]
+    if row_index < 0 or row_index >= len(display_frame):
+        return None
+
+    profile_name = str(display_frame.iloc[row_index].get("策略组合", ""))
+    if profile_name == current_name or profile_name not in valid_profile_names:
+        return None
+    return profile_name
+
+
+def _selected_dataframe_rows(event) -> list[int]:
+    if event is None:
+        return []
+
+    selection = _get_event_value(event, "selection")
+    rows = _get_event_value(selection, "rows")
+    if rows is None:
+        return []
+    return [int(row) for row in rows]
+
+
+def _get_event_value(value, key: str):
+    if isinstance(value, dict):
+        return value.get(key)
+    return getattr(value, key, None)
 
 
 def _find_suggestion(

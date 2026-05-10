@@ -8,13 +8,12 @@ MONTHLY_COLUMN_NAMES = {
     "close": "收盘价",
     "multiplier": "买入倍数",
     "contribution": "投入金额",
-    "bought_shares": "买入份额",
-    "shares": "累计份额",
     "invested": "累计投入",
-    "value": "组合市值",
     "drawdown_pct": "标的回撤",
     "dividend_yield": "股息率%",
     "dividend_percentile": "股息率分位",
+    "pe": "PE",
+    "pe_percentile": "PE分位",
     "action": "操作",
 }
 
@@ -22,9 +21,23 @@ MONTHLY_COLUMN_NAMES = {
 def monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
     display = monthly.copy()
     display["date"] = pd.to_datetime(display["date"]).dt.strftime("%Y-%m")
+    for column in ("contribution", "invested"):
+        if column in display.columns:
+            values = pd.to_numeric(display[column], errors="coerce")
+            display[column] = values.map(
+                lambda value: pd.NA if pd.isna(value) else int(value + 0.5)
+            ).astype("Int64")
+    display = _drop_empty_optional_columns(display, ("pe", "pe_percentile"))
     display = display.rename(columns=MONTHLY_COLUMN_NAMES)
     available = [col for col in MONTHLY_COLUMN_NAMES.values() if col in display.columns]
     return display[available]
+
+
+def _drop_empty_optional_columns(display: pd.DataFrame, columns: tuple[str, ...]) -> pd.DataFrame:
+    for column in columns:
+        if column in display.columns and display[column].isna().all():
+            display = display.drop(columns=column)
+    return display
 
 
 def target_monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:

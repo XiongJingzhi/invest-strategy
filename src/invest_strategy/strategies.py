@@ -207,6 +207,7 @@ def _apply_valuation_hint(
 
     score = round(sum(values) / len(values), 2)
     signal.valuation_score = score
+    signal.dividend_yield = valuation.dividend_yield
     signal.dividend_percentile = valuation.dividend_percentile
     if profile.key == "low_vol_dividend":
         if valuation.dividend_percentile is not None and valuation.dividend_percentile >= 70:
@@ -228,6 +229,7 @@ def _apply_dividend_component(
 ) -> None:
     if valuation.dividend_percentile is None:
         return
+    signal.dividend_yield = valuation.dividend_yield
     high_percentile = float(component.params.get("high_percentile", 70))
     if valuation.dividend_percentile >= high_percentile:
         multiplier = float(component.params.get("multiplier", 1.5))
@@ -254,6 +256,7 @@ def _apply_valuation_component(
         return
     score = round(sum(values) / len(values), 2)
     signal.valuation_score = score
+    signal.dividend_yield = valuation.dividend_yield
     signal.dividend_percentile = valuation.dividend_percentile
     high_percentile = float(component.params.get("high_percentile", 90))
     if score >= high_percentile:
