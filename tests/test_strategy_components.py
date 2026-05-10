@@ -17,23 +17,23 @@ def price_frame(values):
 def test_presets_are_built_from_selectable_components():
     profiles = get_default_profiles()
 
-    sp500_components = {component.key for component in profiles["sp500"].strategy_components}
-    nasdaq_components = {component.key for component in profiles["nasdaq100"].strategy_components}
+    sp500_components = {component.key for component in profiles["core_dca"].strategy_components}
+    nasdaq_components = {component.key for component in profiles["growth_aggressive"].strategy_components}
     steady_components = {component.key for component in profiles["steady_dca"].strategy_components}
     aggressive_components = {
-        component.key for component in profiles["aggressive_drawdown"].strategy_components
+        component.key for component in profiles["drawdown_strike"].strategy_components
     }
     trend_components = {component.key for component in profiles["trend_guard"].strategy_components}
     pure_components = {component.key for component in profiles["pure_dca"].strategy_components}
     crisis_components = {
-        component.key for component in profiles["crisis_cash_bucket"].strategy_components
+        component.key for component in profiles["crisis_bucket"].strategy_components
     }
     dividend_components = {
-        component.key for component in profiles["dividend_value_plus"].strategy_components
+        component.key for component in profiles["valuation_plus"].strategy_components
     }
     rebalance_components = {component.key for component in profiles["ma_rebalance"].strategy_components}
     low_vol_small_drawdown_components = {
-        component.key for component in profiles["low_vol_dividend_small_drawdown"].strategy_components
+        component.key for component in profiles["low_vol_small_dd"].strategy_components
     }
 
     assert sp500_components == {"fixed_contribution", "drawdown_add", "valuation_guard"}
@@ -58,7 +58,7 @@ def test_presets_are_built_from_selectable_components():
 
 
 def test_low_vol_dividend_small_drawdown_preset_uses_requested_rules():
-    profile = get_default_profiles()["low_vol_dividend_small_drawdown"]
+    profile = get_default_profiles()["low_vol_small_dd"]
     drawdown = next(component for component in profile.strategy_components if component.key == "drawdown_add")
     ma = next(component for component in profile.strategy_components if component.key == "ma_deviation")
 
@@ -98,7 +98,7 @@ def test_low_vol_dividend_small_drawdown_preset_uses_requested_rules():
 
 
 def test_disabling_drawdown_component_removes_drawdown_add_on():
-    profile = get_default_profiles()["sp500"]
+    profile = get_default_profiles()["core_dca"]
     components = tuple(
         component if component.key != "drawdown_add" else component.disabled()
         for component in profile.strategy_components
@@ -114,7 +114,7 @@ def test_disabling_drawdown_component_removes_drawdown_add_on():
 
 
 def test_component_parameters_can_be_edited():
-    profile = get_default_profiles()["nasdaq100"]
+    profile = get_default_profiles()["growth_aggressive"]
     custom_ma = StrategyComponent(
         key="ma_deviation",
         display_name="均线偏离",

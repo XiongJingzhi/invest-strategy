@@ -15,7 +15,7 @@ def test_compare_profiles_returns_summary_and_equity_curve():
 
     comparison = compare_profiles(
         prices,
-        [profiles["sp500"], profiles["steady_dca"]],
+        [profiles["core_dca"], profiles["steady_dca"]],
         monthly_contribution=1000,
     )
 

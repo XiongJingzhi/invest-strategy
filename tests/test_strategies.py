@@ -15,7 +15,7 @@ def price_frame(values):
 
 
 def test_low_vol_dividend_uses_ma120_deviation_for_buy_multiplier():
-    profile = get_default_profiles()["low_vol_dividend"]
+    profile = get_default_profiles()["cashflow_defense"]
     prices = price_frame([100.0] * 130 + [78.0])
 
     signal = evaluate_strategy(prices, profile, ValuationInput())
@@ -26,7 +26,7 @@ def test_low_vol_dividend_uses_ma120_deviation_for_buy_multiplier():
 
 
 def test_sp500_drawdown_controls_multiplier_without_sell_signal():
-    profile = get_default_profiles()["sp500"]
+    profile = get_default_profiles()["core_dca"]
     prices = price_frame([100.0, 120.0, 90.0])
 
     signal = evaluate_strategy(prices, profile, ValuationInput())
@@ -37,7 +37,7 @@ def test_sp500_drawdown_controls_multiplier_without_sell_signal():
 
 
 def test_nasdaq_ma250_above_30_percent_suggests_partial_elastic_sell():
-    profile = get_default_profiles()["nasdaq100"]
+    profile = get_default_profiles()["growth_aggressive"]
     prices = price_frame([100.0] * 260 + [132.0])
 
     signal = evaluate_strategy(prices, profile, ValuationInput())
@@ -47,11 +47,69 @@ def test_nasdaq_ma250_above_30_percent_suggests_partial_elastic_sell():
     assert signal.allow_elastic_buy is False
 
 
+def test_nasdaq_ma250_above_20_percent_stops_elastic_buying_at_fixed_layer():
+    profile = get_default_profiles()["growth_aggressive"]
+    prices = price_frame([100.0] * 260 + [124.0])
+
+    signal = evaluate_strategy(prices, profile, ValuationInput())
+
+    assert signal.ma_deviation_pct >= 20
+    assert signal.action == "停止弹性买入"
+    assert signal.allow_elastic_buy is False
+    assert signal.multiplier == 0.6
+
+
 def test_nasdaq_normal_state_uses_smaller_fixed_layer_weight():
-    profile = get_default_profiles()["nasdaq100"]
+    profile = get_default_profiles()["growth_aggressive"]
     prices = price_frame([100.0, 101.0, 102.0])
 
     signal = evaluate_strategy(prices, profile, ValuationInput())
 
     assert signal.action == "正常定投"
     assert signal.multiplier == 0.6
+
+
+def test_steady_dca_uses_valuation_when_provided():
+    profile = get_default_profiles()["steady_dca"]
+    prices = price_frame([100.0, 101.0, 102.0])
+    valuation = ValuationInput(pb_percentile=95.0, pe_percentile=92.0)
+
+    signal = evaluate_strategy(prices, profile, valuation)
+
+    assert signal.valuation_score is not None
+    assert signal.valuation_score >= 90
+    assert signal.allow_elastic_buy is False
+    assert any("估值分位偏高" in r for r in signal.reasons)
+
+
+def test_steady_dca_ignores_empty_valuation():
+    profile = get_default_profiles()["steady_dca"]
+    prices = price_frame([100.0, 101.0, 102.0])
+
+    signal = evaluate_strategy(prices, profile, ValuationInput())
+
+    assert signal.valuation_score is None
+    assert signal.allow_elastic_buy is True
+
+
+def test_core_dca_valuation_component_not_duplicated():
+    profile = get_default_profiles()["core_dca"]
+    prices = price_frame([100.0, 101.0, 102.0])
+    valuation = ValuationInput(pb_percentile=95.0)
+
+    signal = evaluate_strategy(prices, profile, valuation)
+
+    assert signal.valuation_score is not None
+    valuation_reasons = [r for r in signal.reasons if "估值" in r]
+    assert len(valuation_reasons) == 1
+
+
+def test_pure_dca_uses_valuation_when_provided():
+    profile = get_default_profiles()["pure_dca"]
+    prices = price_frame([100.0, 101.0, 102.0])
+    valuation = ValuationInput(pe_percentile=95.0)
+
+    signal = evaluate_strategy(prices, profile, valuation)
+
+    assert signal.valuation_score is not None
+    assert signal.allow_elastic_buy is False

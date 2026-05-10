@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from invest_strategy.tickers import get_suggested_tickers; ts = get_suggested_tickers\\(\\); print\\([t.label for t in ts]\\); t512 = [t for t in ts if '512890' in t.symbol][0]; print\\(f'{t512.label} -> min_start: {t512.min_backtest_start\\(\\)}'\\)\")",
+      "Bash(python -m pytest tests/test_tickers.py -v)",
+      "Bash(python -c \"from invest_strategy.tickers import get_suggested_tickers; [print\\(t.label\\) for t in get_suggested_tickers\\(\\) if '红利' in t.name]\")",
+      "Bash(pkill -f \"streamlit run\")",
+      "Bash(streamlit run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8501)",
+      "WebSearch",
+      "mcp__web-reader__webReader",
+      "Bash(python -c ' *)",
+      "Bash(mkdir -p ~/.streamlit)",
+      "Bash(cat)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

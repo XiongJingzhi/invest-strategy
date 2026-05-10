@@ -59,6 +59,10 @@ def _is_plain_china_fund_code(symbol: str) -> bool:
     return symbol.isdigit() and len(symbol) == 6
 
 
+def _is_china_exchange_symbol(symbol: str) -> bool:
+    return symbol.endswith(".SS") or symbol.endswith(".SZ") or symbol.endswith(".BJ")
+
+
 def _download_china_fund_nav(
     symbol: str,
     start: date | str,
@@ -146,3 +150,64 @@ def _normalize_price_frame(raw: pd.DataFrame) -> pd.DataFrame:
     frame["date"] = pd.to_datetime(frame["date"])
     frame["close"] = pd.to_numeric(frame["close"], errors="coerce")
     return frame.dropna(subset=["close"])
+
+
+def download_dividend_percentiles(
+    ticker: str,
+    start: date | str,
+    end: date | str | None = None,
+) -> pd.DataFrame:
+    symbol = ticker.strip().upper()
+    if _is_plain_china_fund_code(symbol) or _is_china_exchange_symbol(symbol):
+        return pd.DataFrame(columns=["date", "dividend_yield", "dividend_percentile"])
+
+    try:
+        symbol = ticker.strip().upper()
+        t = yf.Ticker(symbol)
+        dividends = t.dividends
+        if dividends.empty:
+            return pd.DataFrame(columns=["date", "dividend_yield", "dividend_percentile"])
+
+        dividends = dividends.reset_index()
+        dividends.columns = ["date", "dividend"]
+        dividends["date"] = pd.to_datetime(dividends["date"]).dt.tz_localize(None)
+
+        prices = yf.download(symbol, start=start, end=end, auto_adjust=True, progress=False)
+        if isinstance(prices.columns, pd.MultiIndex):
+            prices.columns = prices.columns.get_level_values(0)
+        prices = prices.reset_index()
+        prices["date"] = pd.to_datetime(prices["Date"]).dt.tz_localize(None)
+        prices = prices[["date", "Close"]].rename(columns={"Close": "close"})
+        prices["close"] = pd.to_numeric(prices["close"], errors="coerce")
+        prices = prices.dropna(subset=["close"]).sort_values("date")
+
+        if prices.empty:
+            return pd.DataFrame(columns=["date", "dividend_yield", "dividend_percentile"])
+
+        merged = prices.merge(dividends, on="date", how="left")
+        merged["dividend"] = merged["dividend"].fillna(0)
+
+        monthly = merged.set_index("date").resample("ME").agg(
+            close=("close", "last"),
+            dividend=("dividend", "sum"),
+        ).reset_index()
+
+        monthly["rolling_dividends"] = monthly["dividend"].rolling(window=12, min_periods=1).sum()
+        monthly["dividend_yield"] = (monthly["rolling_dividends"] / monthly["close"] * 100).round(4)
+        monthly["dividend_percentile"] = (
+            monthly["dividend_yield"]
+            .rolling(window=60, min_periods=12)
+            .apply(lambda x: _percentile_rank(x.iloc[-1], x), raw=False)
+            .round(1)
+        )
+
+        result = monthly[["date", "dividend_yield", "dividend_percentile"]].copy()
+        return result.dropna(subset=["dividend_percentile"]).reset_index(drop=True)
+    except Exception:
+        return pd.DataFrame(columns=["date", "dividend_yield", "dividend_percentile"])
+
+
+def _percentile_rank(current: float, series: pd.Series) -> float:
+    if len(series) < 2:
+        return 50.0
+    return float((series < current).sum() / (len(series) - 1) * 100)

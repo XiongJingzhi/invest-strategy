@@ -9,15 +9,15 @@ from invest_strategy.profiles import (
 def test_profile_strategy_rows_explain_drawdown_and_ma_rules():
     profiles = get_default_profiles()
 
-    low_vol_rows = get_profile_strategy_rows(profiles["low_vol_dividend"])
-    sp500_rows = get_profile_strategy_rows(profiles["sp500"])
+    low_vol_rows = get_profile_strategy_rows(profiles["cashflow_defense"])
+    sp500_rows = get_profile_strategy_rows(profiles["core_dca"])
 
     assert any(row["策略"] == "均线偏离" for row in low_vol_rows)
     assert any(row["策略"] == "回撤加仓" for row in sp500_rows)
 
 
 def test_profile_settings_can_override_user_adjustable_rules():
-    profile = get_default_profiles()["nasdaq100"]
+    profile = get_default_profiles()["growth_aggressive"]
 
     customized = with_profile_settings(
         profile,

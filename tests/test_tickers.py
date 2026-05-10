@@ -10,30 +10,19 @@ def test_suggested_tickers_include_core_assets():
 
     assert "SPY - 标普500 ETF" in labels
     assert "QQQ - 纳指100 ETF" in labels
-    assert "515100.SS - A股红利低波ETF" in labels
-    assert "VOO" not in symbols
-    assert "IVV" not in symbols
-    assert "QQQM" not in symbols
+    assert "515100.SS - 红利低波100ETF" in labels
+    assert len(suggestions) == 3
 
 
-def test_suggested_tickers_include_dividend_funds():
+def test_suggested_tickers_include_dividend_fund():
     suggestions = get_suggested_tickers()
     symbols = [item.symbol for item in suggestions]
-    assert "510880.SS" in symbols
-    assert "090010" in symbols
-    assert "501305.SS" in symbols
-
-
-def test_fund_ticker_can_define_download_fallbacks():
-    suggestions = get_suggested_tickers()
-    fund = next(item for item in suggestions if item.symbol == "090010")
-
-    assert fund.download_symbols == ("090010", "090010.SS", "090010.SZ")
+    assert "515100.SS" in symbols
 
 
 def test_min_backtest_start_skips_first_month():
-    ticker = TickerSuggestion("512890.SS", "红利低波 ETF", inception_date=date(2018, 12, 1))
-    assert ticker.min_backtest_start() == date(2019, 2, 1)
+    ticker = TickerSuggestion("515100.SS", "红利低波100ETF", inception_date=date(2020, 5, 22))
+    assert ticker.min_backtest_start() == date(2020, 7, 1)
 
 
 def test_min_backtest_start_returns_none_without_inception():

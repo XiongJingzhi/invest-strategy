@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 from .models import AssetProfile, BacktestResult, BacktestSummary, ValuationInput
@@ -10,7 +12,7 @@ def run_backtest(
     prices: pd.DataFrame,
     profile: AssetProfile,
     monthly_contribution: float,
-    valuation: ValuationInput | None = None,
+    valuation_history: pd.DataFrame | None = None,
 ) -> BacktestResult:
     if monthly_contribution <= 0:
         raise ValueError("monthly_contribution must be positive")
@@ -22,6 +24,8 @@ def run_backtest(
     frame = frame.sort_values("date")
     monthly = _monthly_prices(frame)
 
+    valuation_lookup = _build_valuation_lookup(valuation_history)
+
     rows: list[dict[str, float | str | pd.Timestamp]] = []
     shares = 0.0
     total_invested = 0.0
@@ -30,6 +34,8 @@ def run_backtest(
 
     for _, row in monthly.iterrows():
         history = frame[frame["date"] <= row["date"]]
+        month_date = row["date"]
+        valuation = _lookup_valuation(valuation_lookup, month_date)
         signal = evaluate_strategy(history, profile, valuation)
         contribution = monthly_contribution * signal.multiplier
         price = float(row["close"])
@@ -53,6 +59,8 @@ def run_backtest(
                 "value": value,
                 "drawdown_pct": signal.drawdown_pct,
                 "action": signal.action,
+                "dividend_yield": signal.dividend_yield,
+                "dividend_percentile": signal.dividend_percentile,
             }
         )
 
@@ -60,14 +68,47 @@ def run_backtest(
     final_value = float(output.iloc[-1]["value"])
     total_return_pct = (final_value / total_invested - 1) * 100 if total_invested else 0.0
     annualized_return_pct = _annualized_return_pct(output, final_value, total_invested)
+    xirr_pct = _compute_xirr(output, final_value)
     summary = BacktestSummary(
         total_invested=round(total_invested, 2),
         final_value=round(final_value, 2),
         total_return_pct=round(total_return_pct, 2),
         annualized_return_pct=round(annualized_return_pct, 2),
+        xirr_pct=round(xirr_pct, 2),
         max_drawdown_pct=round(max_drawdown_pct, 2),
     )
     return BacktestResult(monthly=output, summary=summary)
+
+
+def _build_valuation_lookup(
+    valuation_history: pd.DataFrame | None,
+) -> dict[pd.Timestamp, ValuationInput]:
+    if valuation_history is None or valuation_history.empty:
+        return {}
+    lookup: dict[pd.Timestamp, ValuationInput] = {}
+    for _, row in valuation_history.iterrows():
+        dt = pd.Timestamp(row["date"])
+        dp = float(row["dividend_percentile"]) if pd.notna(row.get("dividend_percentile")) else None
+        dy = float(row["dividend_yield"]) if pd.notna(row.get("dividend_yield")) else None
+        lookup[dt] = ValuationInput(dividend_percentile=dp)
+        if dy is not None:
+            lookup[dt] = ValuationInput(dividend_percentile=dp)
+    return lookup
+
+
+def _lookup_valuation(
+    lookup: dict[pd.Timestamp, ValuationInput],
+    month_date: pd.Timestamp,
+) -> ValuationInput | None:
+    if not lookup:
+        return None
+    if month_date in lookup:
+        return lookup[month_date]
+    best_key = None
+    for key in lookup:
+        if key <= month_date and (best_key is None or key > best_key):
+            best_key = key
+    return lookup.get(best_key)
 
 
 def _monthly_prices(prices: pd.DataFrame) -> pd.DataFrame:
@@ -88,3 +129,58 @@ def _annualized_return_pct(output: pd.DataFrame, final_value: float, total_inves
     years = months / 12
     total_return = final_value / total_invested
     return (total_return ** (1 / years) - 1) * 100
+
+
+def _compute_xirr(output: pd.DataFrame, final_value: float) -> float:
+    if len(output) < 2 or final_value <= 0:
+        return 0.0
+
+    dates: list[pd.Timestamp] = []
+    amounts: list[float] = []
+
+    for _, row in output.iterrows():
+        dates.append(pd.Timestamp(row["date"]))
+        amounts.append(-float(row["contribution"]))
+
+    dates.append(dates[-1])
+    amounts.append(final_value)
+
+    if not amounts or all(a == 0 for a in amounts):
+        return 0.0
+
+    rate = _xirrNewton(dates, amounts)
+    return (rate - 1) * 100 if rate and math.isfinite(rate) else 0.0
+
+
+def _xirrNewton(
+    dates: list[pd.Timestamp],
+    amounts: list[float],
+    guess: float = 1.1,
+    max_iter: int = 100,
+    tol: float = 1e-8,
+) -> float | None:
+    d0 = dates[0].to_pydatetime()
+    year_days = 365.25
+
+    rate = guess
+    for _ in range(max_iter):
+        npv = 0.0
+        d_npv = 0.0
+        for dt, amt in zip(dates, amounts):
+            year_frac = (dt.to_pydatetime() - d0).days / year_days
+            try:
+                factor = rate ** year_frac
+                npv += amt / factor
+                if year_frac != 0:
+                    d_npv -= amt * year_frac / (rate ** (year_frac + 1))
+            except (OverflowError, ZeroDivisionError):
+                return rate
+        if d_npv == 0:
+            break
+        new_rate = rate - npv / d_npv
+        if not math.isfinite(new_rate) or new_rate <= 0:
+            break
+        if abs(new_rate - rate) < tol:
+            return new_rate
+        rate = new_rate
+    return rate if rate > 0 else None

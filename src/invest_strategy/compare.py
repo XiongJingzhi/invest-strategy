@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from .backtest import run_backtest
-from .models import AssetProfile, ValuationInput
+from .models import AssetProfile
 from .profiles import get_profile_strategy_rows
 
 
@@ -19,13 +19,13 @@ def compare_profiles(
     prices: pd.DataFrame,
     profiles: list[AssetProfile] | tuple[AssetProfile, ...],
     monthly_contribution: float,
-    valuation: ValuationInput | None = None,
+    valuation_history: pd.DataFrame | None = None,
 ) -> StrategyComparison:
     summary_rows: list[dict[str, object]] = []
     curve_frames: list[pd.DataFrame] = []
 
     for profile in profiles:
-        result = run_backtest(prices, profile, monthly_contribution, valuation)
+        result = run_backtest(prices, profile, monthly_contribution, valuation_history)
         summary_rows.append(
             {
                 "策略组合": profile.display_name,
@@ -36,6 +36,7 @@ def compare_profiles(
                 "期末市值": result.summary.final_value,
                 "总收益率": result.summary.total_return_pct,
                 "年化回报率": result.summary.annualized_return_pct,
+                "XIRR年化": result.summary.xirr_pct,
                 "组合最大回撤": result.summary.max_drawdown_pct,
             }
         )

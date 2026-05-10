@@ -13,6 +13,8 @@ MONTHLY_COLUMN_NAMES = {
     "invested": "累计投入",
     "value": "组合市值",
     "drawdown_pct": "标的回撤",
+    "dividend_yield": "股息率%",
+    "dividend_percentile": "股息率分位",
     "action": "操作",
 }
 
@@ -21,7 +23,8 @@ def monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
     display = monthly.copy()
     display["date"] = pd.to_datetime(display["date"]).dt.strftime("%Y-%m")
     display = display.rename(columns=MONTHLY_COLUMN_NAMES)
-    return display[list(MONTHLY_COLUMN_NAMES.values())]
+    available = [col for col in MONTHLY_COLUMN_NAMES.values() if col in display.columns]
+    return display[available]
 
 
 def target_monthly_display_frame(monthly: pd.DataFrame) -> pd.DataFrame:
@@ -65,6 +68,7 @@ def comparison_display_frame(summary: pd.DataFrame) -> pd.DataFrame:
         "期末市值",
         "总收益率",
         "年化回报率",
+        "XIRR年化",
         "组合最大回撤",
     ]
     return summary[[column for column in columns if column in summary.columns]].copy()

@@ -20,17 +20,18 @@ def evaluate_strategy(
     drawdown_pct = round((current_price / peak_price - 1) * 100, 2) if peak_price else 0.0
     ma_days = _ma_days(profile)
     ma_deviation_pct = _ma_deviation(frame, ma_days)
+    fixed_layer_weight = _fixed_layer_weight(profile)
     signal = StrategySignal(
-        multiplier=_fixed_layer_weight(profile),
+        multiplier=fixed_layer_weight,
         drawdown_pct=drawdown_pct,
         ma_deviation_pct=ma_deviation_pct,
     )
 
     if profile.strategy_components:
-        _apply_components(signal, profile, valuation, ma_days)
+        _apply_components(signal, profile, valuation, ma_days, fixed_layer_weight)
     else:
         _apply_drawdown_rules(signal, profile.drawdown_rules)
-        _apply_ma_rules(signal, profile.ma_rules, ma_days)
+        _apply_ma_rules(signal, profile.ma_rules, ma_days, fixed_layer_weight)
         _apply_valuation_hint(signal, profile, valuation)
 
     if not signal.reasons:
@@ -87,18 +88,25 @@ def _apply_components(
     profile: AssetProfile,
     valuation: ValuationInput,
     ma_days: int,
+    fixed_layer_weight: float,
 ) -> None:
+    has_valuation_component = False
     for component in sorted(profile.strategy_components, key=lambda item: item.priority):
         if not component.enabled:
             continue
         if component.component_type == "drawdown_add":
             _apply_drawdown_rules(signal, _drawdown_rules(component))
         elif component.component_type == "ma_deviation":
-            _apply_ma_rules(signal, _ma_rules(component), ma_days)
+            _apply_ma_rules(signal, _ma_rules(component), ma_days, fixed_layer_weight)
         elif component.component_type == "dividend_yield":
+            has_valuation_component = True
             _apply_dividend_component(signal, component, valuation)
         elif component.component_type == "valuation_guard":
+            has_valuation_component = True
             _apply_valuation_component(signal, component, valuation)
+
+    if not has_valuation_component:
+        _apply_valuation_hint(signal, profile, valuation)
 
 
 def _drawdown_rules(component: StrategyComponent) -> tuple[DrawdownRule, ...]:
@@ -135,7 +143,12 @@ def _apply_drawdown_rules(signal: StrategySignal, rules: tuple[DrawdownRule, ...
             return
 
 
-def _apply_ma_rules(signal: StrategySignal, rules: tuple[MaRule, ...], ma_days: int) -> None:
+def _apply_ma_rules(
+    signal: StrategySignal,
+    rules: tuple[MaRule, ...],
+    ma_days: int,
+    fixed_layer_weight: float,
+) -> None:
     if signal.ma_deviation_pct is None:
         return
 
@@ -160,13 +173,19 @@ def _apply_ma_rules(signal: StrategySignal, rules: tuple[MaRule, ...], ma_days: 
     )
     for rule in upper_rules:
         if signal.ma_deviation_pct >= rule.threshold_pct:
-            signal.multiplier = rule.multiplier
+            signal.multiplier = _ma_rule_multiplier(rule, fixed_layer_weight)
             signal.action = rule.action
             signal.allow_elastic_buy = rule.allow_elastic_buy
             signal.reasons.append(
                 f"高于 MA{ma_days} {signal.ma_deviation_pct:.1f}%"
             )
             return
+
+
+def _ma_rule_multiplier(rule: MaRule, fixed_layer_weight: float) -> float:
+    if rule.allow_elastic_buy:
+        return rule.multiplier
+    return min(rule.multiplier, fixed_layer_weight)
 
 
 def _apply_valuation_hint(
@@ -188,6 +207,7 @@ def _apply_valuation_hint(
 
     score = round(sum(values) / len(values), 2)
     signal.valuation_score = score
+    signal.dividend_percentile = valuation.dividend_percentile
     if profile.key == "low_vol_dividend":
         if valuation.dividend_percentile is not None and valuation.dividend_percentile >= 70:
             signal.multiplier = max(signal.multiplier, 1.5)
@@ -234,6 +254,7 @@ def _apply_valuation_component(
         return
     score = round(sum(values) / len(values), 2)
     signal.valuation_score = score
+    signal.dividend_percentile = valuation.dividend_percentile
     high_percentile = float(component.params.get("high_percentile", 90))
     if score >= high_percentile:
         signal.allow_elastic_buy = False

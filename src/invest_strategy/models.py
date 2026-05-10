@@ -63,6 +63,8 @@ class StrategySignal:
     drawdown_pct: float | None = None
     ma_deviation_pct: float | None = None
     valuation_score: float | None = None
+    dividend_percentile: float | None = None
+    dividend_yield: float | None = None
     reasons: list[str] = field(default_factory=list)
 
 
@@ -78,6 +80,7 @@ class BacktestSummary:
     final_value: float
     total_return_pct: float
     annualized_return_pct: float
+    xirr_pct: float
     max_drawdown_pct: float
 
 
