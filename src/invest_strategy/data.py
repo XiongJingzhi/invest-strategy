@@ -209,7 +209,7 @@ def download_dividend_percentiles(
         ).reset_index()
 
         result = _compute_percentile_from_monthly(monthly)
-        return _add_current_pe_valuation(result, t)
+        return result  # Current trailing PE is not historical point-in-time information.
     except Exception:
         return pd.DataFrame(columns=["date", "dividend_yield", "dividend_percentile"])
 
@@ -232,14 +232,8 @@ def _add_current_pe_valuation(valuation: pd.DataFrame, ticker: object) -> pd.Dat
     if valuation.empty:
         return valuation
 
-    pe = _current_trailing_pe(ticker)
-    if pe is None:
-        return valuation
-
-    result = valuation.copy()
-    result["pe"] = pe
-    result["pe_percentile"] = 50.0
-    return result
+    # Retained for API compatibility. A current quote must never populate history.
+    return valuation.copy()
 
 
 def _current_trailing_pe(ticker: object) -> float | None:
@@ -271,7 +265,7 @@ def _china_index_valuation_percentiles(
 
         start_dt = pd.to_datetime(_format_date(start))
         end_dt = pd.to_datetime(_format_date(end)) if end else None
-        history = ak.stock_zh_index_hist_csindex(
+        history = (getattr(ak, "stock_zh_index_hist_csindex", None) or ak.index_hist_csindex)(
             symbol=index_code,
             start_date=start_dt.strftime("%Y%m%d"),
             end_date=(
@@ -342,7 +336,7 @@ def _china_index_recent_dividend_yield(
     start_dt: pd.Timestamp,
     end_dt: pd.Timestamp | None,
 ) -> pd.DataFrame:
-    raw = ak.stock_zh_index_value_csindex(symbol=index_code)
+    raw = (getattr(ak, "stock_zh_index_value_csindex", None) or ak.index_value_csindex)(symbol=index_code)
     if raw.empty or not {"日期", "股息率1"}.issubset(raw.columns):
         return pd.DataFrame(columns=["date", "dividend_yield"])
 

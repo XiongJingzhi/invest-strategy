@@ -101,3 +101,29 @@ def _profile_params_text(profile: AssetProfile) -> str:
                 f"{component.display_name}: 高估分位>={params.get('high_percentile', 90)}%"
             )
     return "；".join(parts)
+
+
+def compare_accounts(market, start, end, config, policy=None, valuations=None):
+    """Identical balances, currency, schedule and execution assumptions for all arms."""
+    from .account import run_account
+    from .models import ExecutionPolicy
+    results, rows = {}, []
+    for strategy in "ABCDEF":
+        if strategy == "F" and valuations is None:
+            rows.append({"strategy": strategy, "status": "UNAVAILABLE: historical valuation missing"})
+            continue
+        try:
+            result = run_account(market, start, end, config, strategy, policy or ExecutionPolicy(), valuations)
+        except ValueError as exc:
+            if strategy != "F":
+                raise
+            rows.append({"strategy": strategy, "status": f"UNAVAILABLE: {exc}"})
+            continue
+        results[strategy] = result
+        rows.append({"strategy": strategy, "status": "OK", **result.metrics})
+    summary = pd.DataFrame(rows).set_index("strategy")
+    for reference in ("A", "B"):
+        summary[f"profit_vs_{reference}"] = summary.final_total-summary.loc[reference, "final_total"]
+    # Measured opportunity cost against fully deployed A, not an invented risk-free series.
+    summary["cash_drag_vs_A"] = summary.loc["A", "final_total"]-summary.final_total
+    return summary, results
