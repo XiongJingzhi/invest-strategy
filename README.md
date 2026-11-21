@@ -90,3 +90,28 @@ required_return,terminal_pe,parameters_fixed_at`。日期带时区，参数为�
 可选逐日列 `equity_cap` / `equity_fee`（其他资产同样使用列名前缀）可以
 编码历史限购变化及费率；0限额表示暂停申购，缺失限额不生成成交。
 所有买入共享同一资产当天限额，不会让定投和战术订单分别重复使用限额。
+
+## GitHub Pages 网页版
+
+Pages 使用 `web/` 下的 React 界面，在浏览器的 Web Worker 中加载 Pyodide 并运行
+现有 Python 计算核心。首次计算需要联网下载运行时与依赖，之后页面不把账户参数
+或成交记录发送到服务器。页面设置保存在浏览器本地；成交 CSV 仅保留在当前页面。
+行情及公开报告包含在构建产物中，**不要提交个人账户信息或密钥**。
+
+```bash
+pip install -e '.[dev]'
+python scripts/build_web_data.py
+npm ci --prefix web
+npm run dev --prefix web
+```
+
+`.github/workflows/pages.yml` 在 main 更新后构建并部署；工作日定时任务先下载、
+校验行情快照，再构建部署。下载失败则任务失败并保留上次部署，不以旧数据冒充
+新数据。快照日期以页面显示为准；历史研究表使用已归档的 2026-11-20 数据，
+不是每日重算。GitHub Pages 使用前需要将仓库 Settings → Pages → Build and deployment
+的 Source 设为 GitHub Actions。站点为公开静态网页；页面依赖 jsDelivr、PyPI
+及 Pyodide 包加载，需保证浏览器可访问这些服务。
+
+历史 F 策略无可验证的时点估值数据，网页回测标记不可用；实际 QDII 的交易日、
+净值确认与历史限购尚未完整建模。纯静态站点没有经纪商连接、跨设备同步或
+服务端实时行情。原 Streamlit 应用和 Python 测试继续保留。
