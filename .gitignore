@@ -8,3 +8,7 @@ dist/
 build/
 *.egg-info/
 .streamlit/secrets.toml
+web/node_modules/
+web/dist/
+web/public/data/
+web/public/python/
