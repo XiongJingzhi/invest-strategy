@@ -57,6 +57,13 @@ def main() -> None:
     _apply_compact_layout()
     st.title("投资策略回测与建议")
 
+    workflow = st.sidebar.radio("工作流", ["原有策略模板", "V2.1 确定性账户"], key="workflow")
+    if workflow == "V2.1 确定性账户":
+        from invest_strategy.v21_ui import render_v21
+        render_v21()
+        return
+    st.caption("旧版探索模板：加仓会改变投入金额，不适用于同本金策略优劣结论。请使用V2.1确定性账户。")
+
     default_profiles = get_default_profiles()
     ticker_suggestions = get_suggested_tickers()
 

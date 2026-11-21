@@ -1,0 +1,74 @@
+{
+  "single": {
+    "account": {
+      "initial_total": 650000,
+      "cash": 650000,
+      "bonds": 0,
+      "holdings": {},
+      "reserve": 150000,
+      "monthly": 20000,
+      "months": 9,
+      "tactical_budget": 100000,
+      "monthly_tactical_cap": 50000,
+      "weights": {
+        "equity": 1.0
+      },
+      "thresholds": [
+        0.1,
+        0.15,
+        0.2,
+        0.3
+      ],
+      "amounts": [
+        10000,
+        20000,
+        30000,
+        40000
+      ]
+    },
+    "starts": [
+      "2000-01-03",
+      "2008-01-02",
+      "2020-01-02",
+      "2022-01-03"
+    ],
+    "end": "2026-11-20 00:00:00",
+    "market_sha256": "41ed5ab437d141fee3e90e98e769c183955f8dcc8c503434bd22ecaae5760bd8"
+  },
+  "portfolio": {
+    "account": {
+      "initial_total": 650000,
+      "cash": 650000,
+      "bonds": 0,
+      "holdings": {},
+      "reserve": 150000,
+      "monthly": 20000,
+      "months": 9,
+      "tactical_budget": 100000,
+      "monthly_tactical_cap": 50000,
+      "weights": {
+        "equity": 0.7,
+        "gold": 0.15,
+        "dividend": 0.15
+      },
+      "thresholds": [
+        0.1,
+        0.15,
+        0.2,
+        0.3
+      ],
+      "amounts": [
+        10000,
+        20000,
+        30000,
+        40000
+      ]
+    },
+    "starts": [
+      "2020-06-01",
+      "2022-01-03"
+    ],
+    "end": "2026-11-19 00:00:00",
+    "market_sha256": "49346496cff812469af5dc775fad5d1012b78007745f1e13632223f08c01ca67"
+  }
+}

@@ -90,3 +90,39 @@ class BacktestSummary:
 class BacktestResult:
     monthly: object
     summary: BacktestSummary
+
+
+@dataclass(frozen=True)
+class AccountConfig:
+    """CNY balances; existing holdings are units valued at the last pre-start observed marks."""
+    initial_total: float = 650_000
+    cash: float = 650_000
+    bonds: float = 0
+    holdings: dict[str, float] = field(default_factory=dict)
+    reserve: float = 150_000
+    monthly: float = 20_000
+    months: int = 9
+    tactical_budget: float = 100_000
+    monthly_tactical_cap: float = 50_000
+    weights: dict[str, float] = field(default_factory=lambda: {"equity": 1.0})
+    thresholds: tuple[float, ...] = (.10, .15, .20, .30)
+    amounts: tuple[float, ...] = (10_000, 20_000, 30_000, 40_000)
+
+
+@dataclass(frozen=True)
+class ExecutionPolicy:
+    """Limits apply to total cash debit per asset/session, including costs."""
+    daily_caps: dict[str, float] = field(default_factory=dict)
+    fees: dict[str, float] = field(default_factory=dict)
+    slippage: float = 0
+    inception: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class AccountResult:
+    daily: object
+    trades: object
+    events: object
+    metrics: dict[str, float | None]
+    config: AccountConfig
+    strategy: str

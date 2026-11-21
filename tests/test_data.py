@@ -90,8 +90,8 @@ def test_download_dividend_percentiles_uses_csi_index_valuation_for_515100(monke
             }
         )
 
-    monkeypatch.setattr("akshare.stock_zh_index_value_csindex", fake_index_value)
-    monkeypatch.setattr("akshare.stock_zh_index_hist_csindex", fake_index_history)
+    monkeypatch.setattr("akshare.stock_zh_index_value_csindex", fake_index_value, raising=False)
+    monkeypatch.setattr("akshare.stock_zh_index_hist_csindex", fake_index_history, raising=False)
     monkeypatch.setattr("invest_strategy.data._china_fund_dividend_percentiles", fake_fund_dividends)
 
     valuation = download_dividend_percentiles("515100.SS", date(2024, 1, 1), date(2025, 1, 1))
@@ -140,8 +140,8 @@ def test_index_dividend_fallback_does_not_recompute_percentile(monkeypatch):
             }
         )
 
-    monkeypatch.setattr("akshare.stock_zh_index_value_csindex", fake_index_value)
-    monkeypatch.setattr("akshare.stock_zh_index_hist_csindex", fake_index_history)
+    monkeypatch.setattr("akshare.stock_zh_index_value_csindex", fake_index_value, raising=False)
+    monkeypatch.setattr("akshare.stock_zh_index_hist_csindex", fake_index_history, raising=False)
     monkeypatch.setattr("invest_strategy.data._china_fund_dividend_percentiles", fake_fund_dividends)
 
     valuation = download_dividend_percentiles("515100.SS", date(2024, 1, 1), date(2025, 1, 1))
@@ -176,5 +176,5 @@ def test_download_dividend_percentiles_normalizes_yfinance_dividend_dates(monkey
     valuation = download_dividend_percentiles("SPY", date(2024, 1, 1), date(2025, 1, 31))
 
     assert valuation["dividend_yield"].max() == 1.0
-    assert valuation.iloc[-1]["pe"] == 27.7
-    assert valuation.iloc[-1]["pe_percentile"] == 50.0
+    assert "pe" not in valuation.columns  # Never retrofill today's PE into history.
+    assert "pe_percentile" not in valuation.columns

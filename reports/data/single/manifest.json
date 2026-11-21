@@ -1,0 +1,66 @@
+{
+  "kind": "REAL_VENDOR_HISTORY",
+  "download_end_exclusive": "2026-11-21",
+  "currency": "CNY",
+  "signal": "NDX unadjusted daily Close, US 16:00 vendor observation",
+  "execution": "next eligible observed adjusted close; not guaranteed real fills",
+  "fx": "FRED DEXCHUS noon reference rate; Yahoo same-date fallback; no temporal fill; not guaranteed executable FX",
+  "warning": "Vendor revisions/adjustments possible; verify official closes before live execution. Current snapshot is not vintage fundamentals.",
+  "rows": 10580,
+  "missing_by_column": {
+    "ndx": 214,
+    "fx": 104,
+    "equity": 3615
+  },
+  "sources": [
+    {
+      "name": "ndx",
+      "symbol": "^NDX",
+      "source": "Yahoo Finance via yfinance",
+      "downloaded_at": "2026-11-21T05:41:48.894862+00:00",
+      "field": "Close",
+      "currency": "USD",
+      "first": "1985-10-01 00:00:00",
+      "last": "2026-11-20 00:00:00",
+      "missing": 0,
+      "sha256": "2be1c810e17a76955c9812dfd3229710ac2853e9bce803a00dd3436e638f9e9f"
+    },
+    {
+      "name": "fx",
+      "symbol": "CNY=X",
+      "source": "Yahoo Finance via yfinance",
+      "downloaded_at": "2026-11-21T05:41:49.443204+00:00",
+      "field": "Close",
+      "currency": "CNY per USD",
+      "first": "2001-06-25 00:00:00",
+      "last": "2026-11-20 00:00:00",
+      "missing": 0,
+      "sha256": "7c213607a57ef23222e855c8bb2727b3f50c1acbfa92b850002a4248dd80206a"
+    },
+    {
+      "name": "equity",
+      "symbol": "QQQ",
+      "source": "Yahoo Finance via yfinance",
+      "downloaded_at": "2026-11-21T05:41:49.961900+00:00",
+      "field": "Adj Close",
+      "currency": "USD",
+      "first": "1999-03-10 00:00:00",
+      "last": "2026-11-20 00:00:00",
+      "missing": 0,
+      "sha256": "60c02eeb16502d4196ef7cfabdc2715a92950602047993dd0dfb92c0177da4fc"
+    },
+    {
+      "name": "fx_extension",
+      "source": "Federal Reserve H.10 / FRED DEXCHUS",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXCHUS&cosd=1985-01-01&coed=2026-11-21",
+      "downloaded_at": "2026-11-21T05:45:52.139691+00:00",
+      "currency": "CNY per USD",
+      "field": "DEXCHUS",
+      "sha256": "3fa09bcdb174f31880fe2fe171b317cfa920a57e0e58afaded86e513bca10f1a",
+      "first": "1985-01-02 00:00:00",
+      "last": "2026-11-13 00:00:00",
+      "missing": 477
+    }
+  ],
+  "market_sha256": "41ed5ab437d141fee3e90e98e769c183955f8dcc8c503434bd22ecaae5760bd8"
+}
