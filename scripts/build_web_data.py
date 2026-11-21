@@ -14,10 +14,7 @@ for name in ('single', 'portfolio'):
 for name in ('single', 'portfolio'):
     for suffix in ('rolling-summary.csv', 'event-summary.csv'):
         shutil.copy(root / 'reports' / f'{name}-{suffix}', out / f'{name}-{suffix}')
-package = root / 'web/public/python/invest_strategy'
-package.mkdir(parents=True, exist_ok=True)
-for name in ('__init__.py', 'account.py', 'models.py', 'performance.py', 'valuation.py', 'decision.py', 'compare.py', 'research.py'):
-    shutil.copy(root / 'src/invest_strategy' / name, package / name)
-# compare imports legacy backtest and profile modules at import time.
-for name in ('backtest.py', 'strategies.py', 'profiles.py'):
-    shutil.copy(root / 'src/invest_strategy' / name, package / name)
+# Precompute the exchange calendar for fixed trading-day schedules.
+import exchange_calendars as xcals
+calendar = xcals.get_calendar("XNYS", start="1980-01-01", end="2100-12-31")
+(out / "xnys.json").write_text(json.dumps([str(d.date()) for d in calendar.sessions]))

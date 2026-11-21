@@ -8,4 +8,4 @@ for(const name of ['single','portfolio']) test(`${name} snapshot includes histor
   const manifest=JSON.parse(readFileSync(new URL(`../public/data/${name}-manifest.json`,import.meta.url),'utf8'));
   assert.equal(manifest.kind,'REAL_VENDOR_HISTORY');
 });
-test('python strategy modules are built for browser',()=>assert.ok(existsSync(new URL('../public/python/invest_strategy/account.py',import.meta.url))));
+test('exchange calendar is built',()=>assert.ok(existsSync(new URL('../public/data/xnys.json',import.meta.url))));
